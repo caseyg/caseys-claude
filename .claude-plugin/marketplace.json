@@ -1,0 +1,43 @@
+{
+  "name": "cag-skills",
+  "owner": {
+    "name": "Casey Gollan",
+    "email": "hello@caseyagollan.com"
+  },
+  "metadata": {
+    "description": "Personal automation skills for Claude Code",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "reorder-basics",
+      "source": "./reorder-basics",
+      "description": "Reorder household items from Amazon Buy Again using 1Password integration",
+      "version": "1.0.0",
+      "author": {
+        "name": "Casey Gollan"
+      },
+      "keywords": ["amazon", "shopping", "automation", "1password"]
+    },
+    {
+      "name": "book-fitness",
+      "source": "./book-fitness",
+      "description": "Book fitness classes at Chelsea Piers with 24h advance booking support",
+      "version": "1.0.0",
+      "author": {
+        "name": "Casey Gollan"
+      },
+      "keywords": ["chelsea-piers", "fitness", "yoga", "booking", "1password"]
+    },
+    {
+      "name": "coop-shift",
+      "source": "./coop-shift",
+      "description": "Find and book Park Slope Food Coop shifts using browser automation",
+      "version": "1.0.0",
+      "author": {
+        "name": "Casey Gollan"
+      },
+      "keywords": ["psfc", "food-coop", "shifts", "scheduling", "browser-automation"]
+    }
+  ]
+}
