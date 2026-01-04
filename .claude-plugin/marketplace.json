@@ -38,6 +38,16 @@
         "name": "Casey Gollan"
       },
       "keywords": ["psfc", "food-coop", "shifts", "scheduling", "browser-automation"]
+    },
+    {
+      "name": "tripit-export",
+      "source": "./tripit-export",
+      "description": "Export TripIt travel data to JSON using undocumented API v2",
+      "version": "1.0.0",
+      "author": {
+        "name": "Casey Gollan"
+      },
+      "keywords": ["tripit", "travel", "export", "json", "backup"]
     }
   ]
 }
