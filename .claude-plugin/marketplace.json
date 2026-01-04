@@ -48,6 +48,16 @@
         "name": "Casey Gollan"
       },
       "keywords": ["tripit", "travel", "export", "json", "backup"]
+    },
+    {
+      "name": "things-to-todoist",
+      "source": "./things-to-todoist",
+      "description": "Migrate tasks, projects, and areas from Things 3 for Mac to Todoist",
+      "version": "1.0.0",
+      "author": {
+        "name": "Casey Gollan"
+      },
+      "keywords": ["things", "todoist", "migration", "tasks", "productivity"]
     }
   ]
 }
