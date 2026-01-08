@@ -38,9 +38,9 @@ Then enable CLI integration in the 1Password app:
 | Field | Value |
 |-------|-------|
 | Member ID | `12345` |
-| Name | Casey Gollan |
+| Name | Demo User |
 | Work Assignment | Freelance |
-| Initials | `CG` |
+| Initials | `DU` |
 
 ## Site Architecture
 
