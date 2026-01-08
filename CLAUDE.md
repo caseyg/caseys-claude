@@ -33,22 +33,23 @@ A skill file should include:
 - **Description**: When to use this skill
 - **Trigger Phrases**: Natural language or `/slash-command` invocations
 - **Prerequisites**: Required tools (1Password CLI, dev-browser, etc.)
-- **Workflow**: Step-by-step implementation guide
+- **Workflow**: Step-by-step implementation guide with code examples
+- **API Reference**: Endpoints, request/response formats (if applicable)
 - **Error Handling**: Common failure cases and recovery strategies
 
 ## Current Plugins
 
-### reorder-basics
-Amazon Buy Again automation using 1Password + dev-browser.
-
-**Dependencies:**
-- `op` command (1Password CLI): `brew install --cask 1password-cli`
-- dev-browser plugin for browser automation
-
-**Trigger phrases:** "reorder [item]", "buy [item] again", "/reorder-basics [item]"
+| Plugin | Description | Dependencies |
+|--------|-------------|--------------|
+| `reorder-basics` | Amazon Buy Again automation | 1Password CLI, dev-browser |
+| `book-fitness` | Chelsea Piers class booking via REST API | 1Password CLI |
+| `coop-shift` | Park Slope Food Coop shift booking | dev-browser |
+| `tripit-export` | Export TripIt travel data to JSON | dev-browser |
+| `things-to-todoist` | Migrate Things 3 tasks to Todoist | Todoist MCP, Python (things.py, thefuzz) |
 
 ## Key Integration Points
 
-- **1Password CLI**: Secure credential retrieval via `op item get`
-- **dev-browser plugin**: Browser automation with persistent state
-- **AskUserQuestion**: User confirmation before purchases/destructive actions
+- **1Password CLI**: Secure credential retrieval via `op item get`. Cache tokens in 1Password with `op item edit`.
+- **dev-browser plugin**: Browser automation with persistent state. Start with `./server.sh`, connect via `@/client.js`.
+- **Todoist MCP**: Use `mcp__todoist__*` tools for task management with built-in rate limiting.
+- **AskUserQuestion**: User confirmation before purchases/destructive actions. Batch multiple questions in one call.
