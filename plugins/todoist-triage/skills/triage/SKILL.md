@@ -574,7 +574,257 @@ GROUP BY p.id
 HAVING COUNT(i.id) = 0;
 ```
 
-### Step 2.7: Generate Summary
+### Step 2.7: Detect Temporal Clusters
+
+Tasks created within a short time window (e.g., 10 minutes) are likely related - people often add a batch of tasks about the same topic (work meeting notes, shopping list, project planning).
+
+```python
+#!/usr/bin/env python3
+"""Detect temporal clusters - tasks created in rapid succession."""
+
+import sqlite3
+import json
+from pathlib import Path
+from datetime import datetime, timedelta
+from collections import defaultdict
+
+PLUGIN_DIR = Path("$PLUGIN_ROOT")
+DB_PATH = PLUGIN_DIR / "data" / "todoist.db"
+CLUSTER_WINDOW_MINUTES = 10  # Tasks within this window are considered a cluster
+MIN_CLUSTER_SIZE = 3  # Minimum tasks to form a meaningful cluster
+
+def find_temporal_clusters(session_id: str):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    # Get all active tasks with timestamps, ordered by creation time
+    cur.execute("""
+        SELECT i.id, i.content, i.added_at, i.project_id, p.name as project_name
+        FROM items i
+        LEFT JOIN projects p ON i.project_id = p.id
+        WHERE i.is_completed = 0
+          AND i.added_at IS NOT NULL
+          AND i.parent_id IS NULL
+        ORDER BY i.added_at
+    """)
+    tasks = cur.fetchall()
+
+    # Find clusters of tasks created within the time window
+    clusters = []
+    current_cluster = []
+
+    for task in tasks:
+        if not task['added_at']:
+            continue
+
+        task_time = datetime.fromisoformat(task['added_at'].replace('Z', '+00:00'))
+
+        if not current_cluster:
+            current_cluster = [task]
+        else:
+            last_time = datetime.fromisoformat(
+                current_cluster[-1]['added_at'].replace('Z', '+00:00')
+            )
+
+            # Check if within window of the last task
+            if (task_time - last_time) <= timedelta(minutes=CLUSTER_WINDOW_MINUTES):
+                current_cluster.append(task)
+            else:
+                # End current cluster if it's big enough
+                if len(current_cluster) >= MIN_CLUSTER_SIZE:
+                    clusters.append(current_cluster)
+                current_cluster = [task]
+
+    # Don't forget the last cluster
+    if len(current_cluster) >= MIN_CLUSTER_SIZE:
+        clusters.append(current_cluster)
+
+    # Analyze each cluster - check if tasks span multiple projects (disorganized)
+    for cluster in clusters:
+        projects = set(t['project_name'] for t in cluster if t['project_name'])
+        task_ids = [t['id'] for t in cluster]
+        contents = [t['content'] for t in cluster]
+
+        # Only flag clusters that are scattered across projects (potential for grouping)
+        if len(projects) > 1:
+            first_time = cluster[0]['added_at']
+            last_time = cluster[-1]['added_at']
+
+            cur.execute("""
+                INSERT INTO triage_findings
+                (session_id, finding_type, item_id, details, suggested_action)
+                VALUES (?, 'temporal_cluster', ?, ?, 'group')
+            """, (
+                session_id,
+                task_ids[0],  # Reference first task
+                json.dumps({
+                    'task_ids': task_ids,
+                    'task_contents': contents[:5],  # First 5 for display
+                    'total_tasks': len(cluster),
+                    'projects': list(projects),
+                    'time_window': f"{first_time} to {last_time}",
+                    'window_minutes': CLUSTER_WINDOW_MINUTES
+                })
+            ))
+
+    conn.commit()
+    print(f"Found {len(clusters)} temporal clusters")
+    conn.close()
+
+if __name__ == "__main__":
+    import sys
+    session_id = sys.argv[1] if len(sys.argv) > 1 else "test"
+    find_temporal_clusters(session_id)
+```
+
+### Step 2.8: Extract Potential Patterns
+
+Analyze task content for recognizable patterns that could help with future organization:
+- **People names**: Tasks mentioning the same person (e.g., "Call John", "Email John", "John's birthday")
+- **Project keywords**: Recurring concepts (e.g., "website", "Q1", "launch")
+- **Action verbs**: Common patterns (e.g., "Call X", "Email X", "Review X")
+
+```python
+#!/usr/bin/env python3
+"""Extract patterns from task content for user confirmation."""
+
+import sqlite3
+import json
+import re
+from pathlib import Path
+from collections import Counter, defaultdict
+
+PLUGIN_DIR = Path("$PLUGIN_ROOT")
+DB_PATH = PLUGIN_DIR / "data" / "todoist.db"
+
+# Common action verbs to identify patterns
+ACTION_VERBS = [
+    'call', 'email', 'text', 'message', 'contact', 'meet', 'schedule',
+    'review', 'check', 'update', 'fix', 'write', 'send', 'buy', 'get',
+    'book', 'order', 'pay', 'cancel', 'renew', 'submit', 'prepare',
+    'research', 'plan', 'organize', 'clean', 'finish', 'start'
+]
+
+def extract_patterns(session_id: str):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT i.id, i.content, i.project_id, p.name as project_name
+        FROM items i
+        LEFT JOIN projects p ON i.project_id = p.id
+        WHERE i.is_completed = 0 AND i.parent_id IS NULL
+    """)
+    tasks = cur.fetchall()
+
+    # Track patterns
+    word_frequency = Counter()
+    capitalized_words = Counter()  # Likely names or proper nouns
+    action_targets = defaultdict(list)  # "call" -> ["John", "dentist", "mom"]
+
+    for task in tasks:
+        content = task['content']
+        words = content.split()
+
+        # Count all words (excluding very common ones)
+        for word in words:
+            clean = re.sub(r'[^\w]', '', word.lower())
+            if len(clean) > 2:
+                word_frequency[clean] += 1
+
+        # Find capitalized words (potential names/proper nouns)
+        # Skip first word as it's always capitalized
+        for word in words[1:]:
+            if word and word[0].isupper():
+                clean = re.sub(r'[^\w]', '', word)
+                if len(clean) > 1 and clean.lower() not in ACTION_VERBS:
+                    capitalized_words[clean] += 1
+
+        # Extract action patterns: "Call John" -> action="call", target="John"
+        content_lower = content.lower()
+        for verb in ACTION_VERBS:
+            if content_lower.startswith(verb + ' '):
+                # Get the word after the verb
+                rest = content[len(verb)+1:].split()
+                if rest:
+                    target = rest[0].strip('.,!?')
+                    action_targets[verb].append({
+                        'target': target,
+                        'task_id': task['id'],
+                        'full_content': content
+                    })
+
+    # Identify potential patterns worth asking about
+    patterns = {
+        'potential_people': [],
+        'potential_concepts': [],
+        'action_patterns': []
+    }
+
+    # People: Capitalized words appearing 2+ times
+    for word, count in capitalized_words.most_common(20):
+        if count >= 2:
+            # Find all tasks mentioning this word
+            matching_tasks = [t for t in tasks if word in t['content']]
+            patterns['potential_people'].append({
+                'name': word,
+                'count': count,
+                'example_tasks': [t['content'] for t in matching_tasks[:3]],
+                'projects': list(set(t['project_name'] for t in matching_tasks if t['project_name']))
+            })
+
+    # Concepts: Frequent words that appear across multiple projects
+    for word, count in word_frequency.most_common(50):
+        if count >= 3 and word not in ACTION_VERBS:
+            matching_tasks = [t for t in tasks if word in t['content'].lower()]
+            projects = set(t['project_name'] for t in matching_tasks if t['project_name'])
+
+            # Only interesting if appears in multiple projects
+            if len(projects) >= 2:
+                patterns['potential_concepts'].append({
+                    'concept': word,
+                    'count': count,
+                    'projects': list(projects),
+                    'example_tasks': [t['content'] for t in matching_tasks[:3]]
+                })
+
+    # Action patterns: Same verb with multiple targets
+    for verb, targets in action_targets.items():
+        if len(targets) >= 2:
+            patterns['action_patterns'].append({
+                'action': verb,
+                'targets': [t['target'] for t in targets],
+                'count': len(targets),
+                'examples': [t['full_content'] for t in targets[:3]]
+            })
+
+    # Store patterns for interactive questioning
+    if any(patterns.values()):
+        cur.execute("""
+            INSERT INTO triage_findings
+            (session_id, finding_type, details, suggested_action)
+            VALUES (?, 'discovered_patterns', ?, 'ask_user')
+        """, (session_id, json.dumps(patterns)))
+
+    conn.commit()
+
+    total = (len(patterns['potential_people']) +
+             len(patterns['potential_concepts']) +
+             len(patterns['action_patterns']))
+    print(f"Discovered {total} potential patterns to ask about")
+    conn.close()
+
+    return patterns
+
+if __name__ == "__main__":
+    import sys
+    session_id = sys.argv[1] if len(sys.argv) > 1 else "test"
+    extract_patterns(session_id)
+```
+
+### Step 2.9: Generate Summary
 
 ```sql
 -- Count findings by type
@@ -596,13 +846,14 @@ After analysis, present findings to user:
 ```
 Use AskUserQuestion with:
 - Header: "Triage Summary"
-- Question: "Analysis complete! Found:\n• X exact duplicates\n• Y fuzzy duplicates\n• Z stale tasks\n• W tasks missing due dates\n\nWhat would you like to tackle?"
+- Question: "Analysis complete! Found:\n• X exact duplicates\n• Y fuzzy duplicates\n• Z stale tasks\n• W tasks missing due dates\n• N task clusters (created together)\n• P patterns to learn about\n\nWhat would you like to tackle?"
 - Options:
   - "Duplicates (X+Y)" - Handle duplicate tasks first
   - "Stale tasks (Z)" - Review old/overdue tasks
   - "Missing dates (W)" - Add due dates to priority tasks
+  - "Task clusters (N)" - Group related tasks created together
+  - "Learn patterns (P)" - Teach me about people/projects/concepts
   - "Full triage" - Work through all categories
-  - "Skip" - Exit without changes
 ```
 
 ### Step 3.2: Handle Exact Duplicates
@@ -677,6 +928,125 @@ Use AskUserQuestion with:
   - "Create section" - Add section in existing project
   - "Add label" - Tag with #taxes
   - "Skip" - Leave scattered
+```
+
+### Step 3.7: Handle Temporal Clusters
+
+Tasks created in rapid succession (within 10 minutes) are often related. Present these clusters for grouping:
+
+```
+Use AskUserQuestion with:
+- Header: "Task Cluster"
+- Question: "Found 5 tasks created together on Jan 5 at 2:30 PM:\n• 'Review Q1 budget' (Work)\n• 'Update forecast spreadsheet' (Inbox)\n• 'Email Sarah re: projections' (Inbox)\n• 'Schedule finance meeting' (Work)\n• 'Check last year's numbers' (Inbox)\n\nThese look related. Group them?"
+- Options:
+  - "Create project" - New project for all (ask for name)
+  - "Move to Work" - All belong in existing Work project
+  - "Add label" - Tag all with a common label
+  - "Leave as-is" - They're organized correctly
+  - "Review individually" - Decide per task
+```
+
+If user says "Create project", follow up:
+
+```
+Use AskUserQuestion with:
+- Header: "Project Name"
+- Question: "What should I call this project?\nBased on the tasks, suggestions:\n• 'Q1 Budget Review'\n• 'Finance Planning'\n• 'Budget 2026'"
+- Options:
+  - "Q1 Budget Review" - Use suggested name
+  - "Finance Planning" - Use suggested name
+  - "Custom..." - I'll type my own name
+```
+
+### Step 3.8: Pattern Discovery Questions
+
+Ask the user about discovered patterns to build organizational rules for future sessions:
+
+**People Names:**
+
+```
+Use AskUserQuestion with:
+- Header: "Person: Sarah"
+- Question: "I noticed 'Sarah' appears in 4 tasks:\n• 'Email Sarah re: projections'\n• 'Call Sarah about timeline'\n• 'Sarah's feedback on draft'\n• 'Lunch with Sarah'\n\nWho is Sarah? This helps me organize related tasks."
+- Options:
+  - "Work colleague" - Tasks mentioning Sarah → Work project
+  - "Personal friend/family" - Tasks mentioning Sarah → Personal
+  - "Client/customer" - Create @sarah label for tracking
+  - "Multiple contexts" - Sarah appears in different areas
+  - "Skip" - Don't create a rule
+```
+
+**Recurring Concepts:**
+
+```
+Use AskUserQuestion with:
+- Header: "Concept: website"
+- Question: "The word 'website' appears in 6 tasks across Work, Inbox, and Side Project:\n• 'Update website copy'\n• 'Fix website bug'\n• 'Website analytics review'\n\nShould tasks about 'website' have special handling?"
+- Options:
+  - "Move to specific project" - All website tasks → one project
+  - "Add label" - Tag with @website
+  - "It's too broad" - Website relates to multiple things
+  - "Skip" - Don't create a rule
+```
+
+**Action Patterns:**
+
+```
+Use AskUserQuestion with:
+- Header: "Pattern: Call tasks"
+- Question: "You have 8 tasks starting with 'Call':\n• Call dentist\n• Call mom\n• Call insurance company\n• Call John about project\n\nWant to organize 'Call' tasks specially?"
+- Options:
+  - "Add @phone label" - Tag all call tasks
+  - "Add @calls label" - Tag all call tasks
+  - "Group by context" - Work calls vs personal calls
+  - "No pattern" - They're unrelated
+```
+
+**Store Learned Patterns:**
+
+After user confirms patterns, record them in TRIAGE_MEMORY.md:
+
+```yaml
+# In TRIAGE_MEMORY.md - Known Patterns section
+
+known_people:
+  Sarah:
+    context: work
+    action: move_to_project
+    project: "Work"
+  Mom:
+    context: personal
+    action: add_label
+    label: "@family"
+
+known_concepts:
+  website:
+    action: add_label
+    label: "@website"
+  taxes:
+    action: move_to_project
+    project: "Finances"
+
+action_rules:
+  call:
+    action: add_label
+    label: "@phone"
+  email:
+    action: none  # Too common to be useful
+```
+
+### Step 3.9: Suggest Future Organization Rules
+
+Based on all decisions made during triage, suggest auto-rules:
+
+```
+Use AskUserQuestion with:
+- Header: "Auto-Rules"
+- Question: "Based on today's decisions, should I remember these rules?\n\n• Tasks mentioning 'Sarah' → Work project\n• Tasks about 'taxes' → Finances project\n• Tasks starting with 'Call' → Add @phone label\n\nThese will apply automatically in future sessions."
+- Options:
+  - "Save all rules" - Remember everything
+  - "Review each" - Let me approve individually
+  - "Save none" - Don't auto-organize
 ```
 
 ---

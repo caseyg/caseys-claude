@@ -32,6 +32,57 @@ duplicate_default: "review"    # review, keep_newest, keep_oldest, merge
 
 # Fuzzy match similarity threshold (0-100)
 similarity_threshold: 80
+
+# Temporal cluster settings
+temporal_cluster:
+  window_minutes: 10            # Tasks created within this window are grouped
+  min_cluster_size: 3           # Minimum tasks to form a cluster
+```
+
+## Known Patterns
+
+Patterns learned from asking the user about people, concepts, and actions.
+
+```yaml
+# People - Names that appear in tasks with known context
+known_people: {}
+# Example:
+# known_people:
+#   Sarah:
+#     context: work              # work, personal, client, multiple
+#     action: move_to_project    # move_to_project, add_label, none
+#     project: "Work"
+#   Mom:
+#     context: personal
+#     action: add_label
+#     label: "@family"
+
+# Concepts - Keywords that should trigger organization
+known_concepts: {}
+# Example:
+# known_concepts:
+#   website:
+#     action: add_label
+#     label: "@website"
+#   taxes:
+#     action: move_to_project
+#     project: "Finances"
+#   quarterly:
+#     action: add_label
+#     label: "@quarterly-review"
+
+# Action patterns - Verbs at start of tasks
+action_rules: {}
+# Example:
+# action_rules:
+#   call:
+#     action: add_label
+#     label: "@phone"
+#   email:
+#     action: none               # Too common to be useful
+#   buy:
+#     action: move_to_project
+#     project: "Shopping"
 ```
 
 ## Triage Statistics
