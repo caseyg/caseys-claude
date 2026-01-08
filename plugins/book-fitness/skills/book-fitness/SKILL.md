@@ -47,13 +47,13 @@ This skill should be used when the user asks to "book a class", "check yoga sche
 
 ### Location Context
 
-| Location | ID | Notes |
-|----------|-----|-------|
-| Downtown Brooklyn | `14` | Near home |
-| Prospect Heights | `15` | Near home |
-| Flatiron | `16` | Near work |
+| Location | ID |
+|----------|-----|
+| Downtown Brooklyn | `14` |
+| Prospect Heights | `15` |
+| Flatiron | `16` |
 
-Use this context when the user mentions "near home", "near work", etc. Default to searching all locations unless user specifies.
+Default to searching all locations unless user specifies.
 
 ### Activity Group IDs
 
