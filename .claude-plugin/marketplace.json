@@ -58,6 +58,16 @@
         "name": "Casey Gollan"
       },
       "keywords": ["things", "todoist", "migration", "tasks", "productivity"]
+    },
+    {
+      "name": "todoist-triage",
+      "source": "./todoist-triage",
+      "description": "Interactive Todoist inbox triage with duplicate detection, stale task cleanup, and intelligent organization suggestions",
+      "version": "1.0.0",
+      "author": {
+        "name": "Casey Gollan"
+      },
+      "keywords": ["todoist", "triage", "inbox", "duplicates", "cleanup", "organization", "productivity"]
     }
   ]
 }

@@ -3,3 +3,6 @@
 
 # Playwright MCP browser data
 .playwright-mcp/
+
+# Todoist triage runtime data (SQLite db, sync state)
+plugins/todoist-triage/data/
