@@ -1,6 +1,24 @@
 # Todoist Triage
 
-Interactive triage and cleanup for your Todoist task list. Syncs data to a local SQLite database for efficient analysis, detects duplicates and stale tasks, suggests organizational improvements, and learns from your decisions over time.
+Interactive triage and cleanup for your Todoist task list, designed with **Executive Function (EF) and ADHD support** in mind. Syncs data to a local SQLite database for efficient analysis, detects issues, suggests improvements, and coaches you toward better task management habits.
+
+## Philosophy: EF & ADHD-Friendly Design
+
+This skill acts as an **Executive Function coach**, not just a task cleaner. It's built around principles that help people who struggle with:
+
+- **Task initiation**: Identifies "quick wins" (2-5 min tasks) to build momentum
+- **Task sizing**: Breaks down overwhelming tasks into concrete next actions
+- **Clarity**: Ensures tasks are SMART (Specific, Measurable, Attainable, Relevant, Timebound)
+- **Decision fatigue**: Batches similar decisions, offers smart defaults
+- **Motivation**: Celebrates progress, suggests dopamine-friendly task ordering
+- **Overwhelm**: Never shows everything at once; works in focused chunks
+
+**Core Principles:**
+1. **One thing at a time** - Each question focuses on one decision
+2. **Momentum first** - Start sessions by identifying quick wins
+3. **Break it down** - Large vague tasks become concrete action steps
+4. **Raise the bar gently** - Suggest improvements without judgment
+5. **Learn patterns** - Remember what works for you specifically
 
 ## Trigger Phrases
 
@@ -9,6 +27,8 @@ Interactive triage and cleanup for your Todoist task list. Syncs data to a local
 - "clean up my todoist"
 - "find duplicate tasks in todoist"
 - "organize my todoist inbox"
+- "help me get unstuck" (EF-focused mode)
+- "what can I do right now" (quick wins mode)
 
 ## Prerequisites
 
@@ -21,8 +41,8 @@ Interactive triage and cleanup for your Todoist task list. Syncs data to a local
 This skill operates in 5 phases:
 
 1. **SYNC** - Fetch data from Todoist Sync API into local SQLite
-2. **ANALYZE** - Run queries to detect issues (duplicates, stale, missing metadata)
-3. **TRIAGE** - Interactive decision-making with AskUserQuestion
+2. **ANALYZE** - Detect issues: duplicates, stale tasks, sizing problems, SMART gaps
+3. **TRIAGE** - Interactive decision-making with EF-friendly coaching
 4. **CONFIRM** - Review summary of all planned changes
 5. **APPLY** - Execute changes via MCP tools, update memory
 
@@ -824,7 +844,393 @@ if __name__ == "__main__":
     extract_patterns(session_id)
 ```
 
-### Step 2.9: Generate Summary
+### Step 2.9: Task Sizing Analysis
+
+Identify tasks that are too large (need breakdown) or too small (quick wins / automation candidates).
+
+**Size indicators:**
+- **Too Large**: Vague verbs (plan, organize, figure out), no subtasks, multiple "and"s, projects disguised as tasks
+- **Quick Wins**: Specific verbs (call, email, buy), single action, estimated <5 minutes
+- **Automation Candidates**: Repetitive patterns, data lookups, scheduling, reminders
+
+```python
+#!/usr/bin/env python3
+"""Analyze task sizing - identify tasks needing breakdown or quick wins."""
+
+import sqlite3
+import json
+import re
+from pathlib import Path
+
+PLUGIN_DIR = Path("$PLUGIN_ROOT")
+DB_PATH = PLUGIN_DIR / "data" / "todoist.db"
+
+# Indicators of task complexity
+VAGUE_VERBS = [
+    'plan', 'organize', 'figure out', 'deal with', 'handle', 'work on',
+    'think about', 'look into', 'research', 'explore', 'consider',
+    'decide', 'sort out', 'get started on', 'begin', 'start'
+]
+
+QUICK_VERBS = [
+    'call', 'email', 'text', 'send', 'buy', 'order', 'schedule',
+    'book', 'cancel', 'confirm', 'reply', 'respond', 'check',
+    'download', 'upload', 'print', 'sign', 'pay', 'renew'
+]
+
+AUTOMATION_PATTERNS = [
+    r'remind.*to',           # "Remind me to..."
+    r'check.*status',        # "Check status of..."
+    r'follow up.*on',        # "Follow up on..."
+    r'look up',              # "Look up..."
+    r'find.*number',         # "Find phone number for..."
+    r'get.*address',         # "Get address for..."
+    r'schedule.*recurring',  # Recurring scheduling
+]
+
+def analyze_task_size(content: str, description: str = "", has_subtasks: bool = False) -> dict:
+    """Analyze a single task and return sizing assessment."""
+    content_lower = content.lower()
+    word_count = len(content.split())
+
+    result = {
+        'size': 'medium',  # small, medium, large, project
+        'issues': [],
+        'suggestions': []
+    }
+
+    # Check for "too large" indicators
+    large_signals = 0
+
+    # Vague verbs suggest unclear scope
+    for verb in VAGUE_VERBS:
+        if content_lower.startswith(verb + ' ') or f' {verb} ' in content_lower:
+            large_signals += 1
+            result['issues'].append(f"Vague verb: '{verb}'")
+
+    # Multiple actions in one task
+    and_count = content_lower.count(' and ')
+    if and_count >= 2:
+        large_signals += 2
+        result['issues'].append(f"Multiple actions ({and_count + 1} things)")
+    elif and_count == 1:
+        large_signals += 1
+        result['issues'].append("Two actions combined")
+
+    # Very long task names suggest complexity
+    if word_count > 12:
+        large_signals += 1
+        result['issues'].append(f"Long task name ({word_count} words)")
+
+    # No clear action verb at start
+    first_word = content.split()[0].lower() if content else ""
+    if first_word not in QUICK_VERBS and first_word not in VAGUE_VERBS:
+        if not any(content_lower.startswith(v) for v in QUICK_VERBS + VAGUE_VERBS):
+            result['issues'].append("No clear action verb")
+
+    # Classify size
+    if large_signals >= 3:
+        result['size'] = 'project'
+        result['suggestions'].append("This looks like a project, not a task. Break it into 3-5 concrete next actions.")
+    elif large_signals >= 2:
+        result['size'] = 'large'
+        result['suggestions'].append("Consider breaking this into 2-3 smaller tasks with specific outcomes.")
+
+    # Check for "quick win" indicators
+    if result['size'] == 'medium':
+        quick_signals = 0
+
+        for verb in QUICK_VERBS:
+            if content_lower.startswith(verb + ' '):
+                quick_signals += 2
+                break
+
+        if word_count <= 5:
+            quick_signals += 1
+
+        if and_count == 0 and word_count <= 8:
+            quick_signals += 1
+
+        if quick_signals >= 2:
+            result['size'] = 'small'
+            result['suggestions'].append("Quick win! This could be done in 2-5 minutes.")
+
+    # Check for automation candidates
+    for pattern in AUTOMATION_PATTERNS:
+        if re.search(pattern, content_lower):
+            result['automation_candidate'] = True
+            result['suggestions'].append("This might be automatable (reminder, lookup, or recurring task).")
+            break
+
+    return result
+
+def analyze_all_tasks(session_id: str):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    # Get all active tasks
+    cur.execute("""
+        SELECT i.id, i.content, i.description, i.project_id, p.name as project_name,
+               (SELECT COUNT(*) FROM items sub WHERE sub.parent_id = i.id) as subtask_count
+        FROM items i
+        LEFT JOIN projects p ON i.project_id = p.id
+        WHERE i.is_completed = 0 AND i.parent_id IS NULL
+    """)
+    tasks = cur.fetchall()
+
+    quick_wins = []
+    needs_breakdown = []
+    automation_candidates = []
+
+    for task in tasks:
+        analysis = analyze_task_size(
+            task['content'],
+            task['description'] or "",
+            task['subtask_count'] > 0
+        )
+
+        if analysis['size'] == 'small':
+            quick_wins.append({
+                'id': task['id'],
+                'content': task['content'],
+                'project': task['project_name'],
+                'suggestions': analysis['suggestions']
+            })
+        elif analysis['size'] in ('large', 'project'):
+            needs_breakdown.append({
+                'id': task['id'],
+                'content': task['content'],
+                'project': task['project_name'],
+                'size': analysis['size'],
+                'issues': analysis['issues'],
+                'suggestions': analysis['suggestions']
+            })
+
+        if analysis.get('automation_candidate'):
+            automation_candidates.append({
+                'id': task['id'],
+                'content': task['content'],
+                'project': task['project_name']
+            })
+
+    # Store findings
+    if quick_wins:
+        cur.execute("""
+            INSERT INTO triage_findings
+            (session_id, finding_type, details, suggested_action)
+            VALUES (?, 'quick_wins', ?, 'show_user')
+        """, (session_id, json.dumps(quick_wins)))
+
+    if needs_breakdown:
+        cur.execute("""
+            INSERT INTO triage_findings
+            (session_id, finding_type, details, suggested_action)
+            VALUES (?, 'needs_breakdown', ?, 'break_down')
+        """, (session_id, json.dumps(needs_breakdown)))
+
+    if automation_candidates:
+        cur.execute("""
+            INSERT INTO triage_findings
+            (session_id, finding_type, details, suggested_action)
+            VALUES (?, 'automation_candidates', ?, 'suggest_automation')
+        """, (session_id, json.dumps(automation_candidates)))
+
+    conn.commit()
+    print(f"Found {len(quick_wins)} quick wins, {len(needs_breakdown)} need breakdown, {len(automation_candidates)} automation candidates")
+    conn.close()
+
+if __name__ == "__main__":
+    import sys
+    session_id = sys.argv[1] if len(sys.argv) > 1 else "test"
+    analyze_all_tasks(session_id)
+```
+
+### Step 2.10: SMART Analysis
+
+Evaluate tasks against SMART criteria to identify tasks needing clarification:
+- **S**pecific: Is the outcome clear?
+- **M**easurable: How will you know it's done?
+- **A**ttainable: Is this realistic as a single task?
+- **R**elevant: Does it belong in the right project?
+- **T**imebound: Does it have a due date?
+
+```python
+#!/usr/bin/env python3
+"""Analyze tasks against SMART criteria."""
+
+import sqlite3
+import json
+import re
+from pathlib import Path
+from datetime import datetime, timedelta
+
+PLUGIN_DIR = Path("$PLUGIN_ROOT")
+DB_PATH = PLUGIN_DIR / "data" / "todoist.db"
+
+# Words that indicate vague/non-specific tasks
+VAGUE_INDICATORS = [
+    'stuff', 'things', 'etc', 'whatever', 'somehow', 'maybe',
+    'probably', 'might', 'could', 'should', 'would', 'try to',
+    'attempt', 'look into', 'figure out', 'deal with'
+]
+
+# Words that suggest measurable outcomes
+MEASURABLE_WORDS = [
+    'complete', 'finish', 'submit', 'send', 'deliver', 'publish',
+    'launch', 'deploy', 'release', 'ship', 'post', 'file',
+    'schedule', 'book', 'confirm', 'cancel', 'pay', 'order'
+]
+
+def analyze_smart(task: dict) -> dict:
+    """Analyze a task against SMART criteria."""
+    content = task['content']
+    content_lower = content.lower()
+    description = (task.get('description') or '').lower()
+
+    score = {
+        'specific': {'score': 0, 'max': 2, 'issues': [], 'suggestions': []},
+        'measurable': {'score': 0, 'max': 2, 'issues': [], 'suggestions': []},
+        'attainable': {'score': 0, 'max': 2, 'issues': [], 'suggestions': []},
+        'relevant': {'score': 0, 'max': 2, 'issues': [], 'suggestions': []},
+        'timebound': {'score': 0, 'max': 2, 'issues': [], 'suggestions': []},
+    }
+
+    # SPECIFIC: Clear outcome?
+    has_vague = any(v in content_lower for v in VAGUE_INDICATORS)
+    has_clear_verb = content.split()[0].lower() in MEASURABLE_WORDS if content else False
+
+    if has_vague:
+        score['specific']['issues'].append("Contains vague language")
+        score['specific']['suggestions'].append("Replace vague words with specific outcomes")
+    else:
+        score['specific']['score'] += 1
+
+    if has_clear_verb:
+        score['specific']['score'] += 1
+    else:
+        score['specific']['suggestions'].append("Start with a clear action verb (send, complete, schedule...)")
+
+    # MEASURABLE: Can you tell when it's done?
+    word_count = len(content.split())
+
+    if any(w in content_lower for w in MEASURABLE_WORDS):
+        score['measurable']['score'] += 2
+    elif word_count <= 6 and not has_vague:
+        score['measurable']['score'] += 1
+        score['measurable']['suggestions'].append("Add a clear completion criterion")
+    else:
+        score['measurable']['issues'].append("Unclear when this is 'done'")
+        score['measurable']['suggestions'].append("Define what 'complete' looks like")
+
+    # ATTAINABLE: Single task or project?
+    and_count = content_lower.count(' and ')
+    or_count = content_lower.count(' or ')
+
+    if and_count >= 2 or (and_count >= 1 and word_count > 10):
+        score['attainable']['issues'].append("Multiple actions bundled together")
+        score['attainable']['suggestions'].append("Split into separate tasks")
+    elif and_count == 1:
+        score['attainable']['score'] += 1
+        score['attainable']['suggestions'].append("Consider splitting into two tasks")
+    else:
+        score['attainable']['score'] += 2
+
+    # RELEVANT: Has a project assigned?
+    if task.get('is_inbox'):
+        score['relevant']['issues'].append("Still in Inbox - needs a home")
+        score['relevant']['suggestions'].append("Move to an appropriate project")
+    elif task.get('project_name'):
+        score['relevant']['score'] += 2
+    else:
+        score['relevant']['score'] += 1
+
+    # TIMEBOUND: Has a due date?
+    if task.get('due_date'):
+        score['timebound']['score'] += 2
+    elif task.get('priority', 1) >= 3:  # High priority but no date
+        score['timebound']['issues'].append("High priority but no due date")
+        score['timebound']['suggestions'].append("Add a due date to create urgency")
+    else:
+        score['timebound']['score'] += 1
+        score['timebound']['suggestions'].append("Consider adding a due date")
+
+    # Calculate overall score
+    total_score = sum(c['score'] for c in score.values())
+    max_score = sum(c['max'] for c in score.values())
+
+    return {
+        'total_score': total_score,
+        'max_score': max_score,
+        'percentage': round(total_score / max_score * 100),
+        'criteria': score,
+        'needs_improvement': total_score < max_score * 0.6  # Below 60%
+    }
+
+def analyze_all_smart(session_id: str):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT i.id, i.content, i.description, i.project_id, i.due_date, i.priority,
+               p.name as project_name, p.is_inbox
+        FROM items i
+        LEFT JOIN projects p ON i.project_id = p.id
+        WHERE i.is_completed = 0 AND i.parent_id IS NULL
+    """)
+    tasks = cur.fetchall()
+
+    needs_improvement = []
+    well_formed = 0
+
+    for task in tasks:
+        analysis = analyze_smart(dict(task))
+
+        if analysis['needs_improvement']:
+            # Collect issues and suggestions
+            all_issues = []
+            all_suggestions = []
+            for criterion, data in analysis['criteria'].items():
+                if data['issues']:
+                    all_issues.extend(data['issues'])
+                if data['suggestions'] and data['score'] < data['max']:
+                    all_suggestions.extend(data['suggestions'][:1])  # Top suggestion per criterion
+
+            needs_improvement.append({
+                'id': task['id'],
+                'content': task['content'],
+                'project': task['project_name'],
+                'smart_score': analysis['percentage'],
+                'issues': all_issues[:3],  # Top 3 issues
+                'suggestions': all_suggestions[:3],  # Top 3 suggestions
+                'criteria_scores': {k: f"{v['score']}/{v['max']}" for k, v in analysis['criteria'].items()}
+            })
+        else:
+            well_formed += 1
+
+    # Store findings
+    if needs_improvement:
+        # Sort by score (worst first)
+        needs_improvement.sort(key=lambda x: x['smart_score'])
+
+        cur.execute("""
+            INSERT INTO triage_findings
+            (session_id, finding_type, details, suggested_action)
+            VALUES (?, 'smart_issues', ?, 'improve_clarity')
+        """, (session_id, json.dumps(needs_improvement)))
+
+    conn.commit()
+    print(f"SMART analysis: {well_formed} well-formed, {len(needs_improvement)} need improvement")
+    conn.close()
+
+if __name__ == "__main__":
+    import sys
+    session_id = sys.argv[1] if len(sys.argv) > 1 else "test"
+    analyze_all_smart(session_id)
+```
+
+### Step 2.11: Generate Summary
 
 ```sql
 -- Count findings by type
@@ -846,13 +1252,14 @@ After analysis, present findings to user:
 ```
 Use AskUserQuestion with:
 - Header: "Triage Summary"
-- Question: "Analysis complete! Found:\n• X exact duplicates\n• Y fuzzy duplicates\n• Z stale tasks\n• W tasks missing due dates\n• N task clusters (created together)\n• P patterns to learn about\n\nWhat would you like to tackle?"
+- Question: "Analysis complete! Found:\n• Q quick wins (2-5 min tasks)\n• B tasks need breakdown\n• X exact duplicates\n• Y fuzzy duplicates\n• Z stale tasks\n• W tasks need clarity (SMART)\n• N task clusters\n• P patterns to learn\n\nWhat would you like to tackle?"
 - Options:
-  - "Duplicates (X+Y)" - Handle duplicate tasks first
+  - "Quick wins (Q)" - Build momentum with easy tasks
+  - "Break down large (B)" - Split overwhelming tasks
+  - "Duplicates (X+Y)" - Handle duplicate tasks
   - "Stale tasks (Z)" - Review old/overdue tasks
-  - "Missing dates (W)" - Add due dates to priority tasks
-  - "Task clusters (N)" - Group related tasks created together
-  - "Learn patterns (P)" - Teach me about people/projects/concepts
+  - "Improve clarity (W)" - Make tasks SMART
+  - "Task clusters (N)" - Group related tasks
   - "Full triage" - Work through all categories
 ```
 
@@ -1047,6 +1454,165 @@ Use AskUserQuestion with:
   - "Save all rules" - Remember everything
   - "Review each" - Let me approve individually
   - "Save none" - Don't auto-organize
+```
+
+### Step 3.10: Quick Wins (Momentum Building)
+
+**EF Principle**: Starting is the hardest part. Quick wins build dopamine and momentum.
+
+Present small, actionable tasks the user can knock out quickly:
+
+```
+Use AskUserQuestion with:
+- Header: "🚀 Quick Wins"
+- Question: "Here are 5 tasks you could finish in the next 15 minutes:\n\n1. 'Call dentist' (Personal)\n2. 'Reply to John's email' (Work)\n3. 'Order printer paper' (Shopping)\n4. 'Schedule haircut' (Personal)\n5. 'Pay electric bill' (Finances)\n\nWant to knock some out now? I can help you batch similar ones."
+- Options:
+  - "Show me all quick wins" - See the full list
+  - "Batch by type" - Group calls, emails, etc.
+  - "Start with #1" - Let's do it now
+  - "Add to Today" - Mark all as due today
+  - "Skip momentum" - Move to other triage
+```
+
+If user chooses "Batch by type":
+
+```
+Use AskUserQuestion with:
+- Header: "Batch Tasks"
+- Question: "I grouped your quick wins by action type:\n\n📞 Calls (3): dentist, insurance, mom\n📧 Emails (2): reply to John, send invoice\n🛒 Orders (2): printer paper, vitamins\n\nWhich batch do you want to tackle?"
+- Options:
+  - "📞 Calls first" - 3 tasks, ~10 min total
+  - "📧 Emails first" - 2 tasks, ~5 min total
+  - "🛒 Orders first" - 2 tasks, ~5 min total
+  - "Do all today" - Mark all as due today
+```
+
+After completing quick wins, celebrate progress:
+
+```
+Use AskUserQuestion with:
+- Header: "Progress! 🎉"
+- Question: "You just cleared 3 tasks in one session!\n\nTotal today: 3 tasks completed\nMomentum: Building\n\nKeep going or take a break?"
+- Options:
+  - "Keep going" - More quick wins
+  - "Bigger tasks" - Ready to tackle something larger
+  - "Take a break" - Done for now
+```
+
+### Step 3.11: Large Task Breakdown
+
+**EF Principle**: Vague tasks create paralysis. Concrete next actions enable progress.
+
+For tasks flagged as "too large" or "project-sized":
+
+```
+Use AskUserQuestion with:
+- Header: "Break Down Task"
+- Question: "'Plan vacation to Japan'\n\nThis looks like a project, not a task. It has:\n• Vague verb: 'plan'\n• Multiple implied steps\n• No clear completion point\n\nLet me help you break it down. What's the VERY NEXT physical action?"
+- Options:
+  - "Research flights" - Search dates/prices
+  - "Pick dates" - Check calendar first
+  - "Ask travel buddy" - Coordinate with someone
+  - "Help me think" - Walk me through it
+```
+
+If user chooses "Help me think":
+
+```
+Use AskUserQuestion with:
+- Header: "Next Action"
+- Question: "Let's find the next action for 'Plan vacation to Japan'.\n\nImagine you're about to work on this. You sit down and...\n\nWhat's the first thing you'd do? (Be specific - 'research' is too vague)"
+- Options:
+  - "Open browser" - Search for flight prices
+  - "Open calendar" - Check available dates
+  - "Text friend" - Ask about their schedule
+  - "Other..." - I'll describe it
+```
+
+After identifying subtasks:
+
+```
+Use AskUserQuestion with:
+- Header: "Create Subtasks"
+- Question: "Great! Here's your breakdown for 'Plan vacation to Japan':\n\n1. Check calendar for possible weeks in March\n2. Text Alex about her availability\n3. Search flights on Google Flights\n4. Research Tokyo neighborhoods\n5. Make list of must-see places\n\nShould I create these as subtasks?"
+- Options:
+  - "Create all" - Add as subtasks under main task
+  - "Create as project" - Make 'Japan Vacation' project
+  - "Edit list first" - Let me adjust
+  - "Just first one" - Only create the next action
+```
+
+### Step 3.12: SMART Improvement Coaching
+
+**EF Principle**: Clear tasks are easier to start. Vague tasks cause avoidance.
+
+Present tasks with low SMART scores for improvement:
+
+```
+Use AskUserQuestion with:
+- Header: "Improve Task"
+- Question: "'Work on website stuff'\n\nSMART Score: 30% (needs work)\n• ❌ Specific: 'stuff' is vague\n• ❌ Measurable: No clear completion\n• ⚠️ Attainable: Might be too broad\n• ✓ Relevant: In correct project\n• ❌ Timebound: No due date\n\nLet's make this clearer. What specific outcome do you want?"
+- Options:
+  - "Fix the contact form" - Specific bug to fix
+  - "Update homepage copy" - Specific page to edit
+  - "Add new blog post" - Specific content to create
+  - "It's actually multiple things" - Help me split it
+```
+
+After clarifying:
+
+```
+Use AskUserQuestion with:
+- Header: "Rewrite Task"
+- Question: "How about this rewrite?\n\nOld: 'Work on website stuff'\nNew: 'Fix contact form not sending emails'\n\nSMART Score: 90%\n• ✓ Specific: Clear what to fix\n• ✓ Measurable: Form works or doesn't\n• ✓ Attainable: Single task\n• ✓ Relevant: In Website project\n• ⚠️ Timebound: Add due date?\n\nUpdate the task?"
+- Options:
+  - "Update + add due date" - Fix it and set deadline
+  - "Just update text" - Change task name only
+  - "Different wording" - Let me suggest something
+  - "Keep original" - Leave as-is
+```
+
+For batch SMART improvements:
+
+```
+Use AskUserQuestion with:
+- Header: "Clarity Review"
+- Question: "Found 8 tasks below 60% SMART score. Want to improve them?\n\nWorst offenders:\n• 'Deal with taxes' (25%)\n• 'Figure out insurance' (30%)\n• 'Think about career' (35%)\n• 'Handle house stuff' (40%)\n\nThese are hard to start because they're unclear."
+- Options:
+  - "Improve all 8" - Walk through each one
+  - "Just top 3" - Focus on worst ones
+  - "Quick rewrites" - I'll suggest, you approve
+  - "Skip clarity" - Leave them vague
+```
+
+### Step 3.13: Automation Suggestions
+
+**EF Principle**: Reduce cognitive load by automating repetitive decisions.
+
+For tasks flagged as automation candidates:
+
+```
+Use AskUserQuestion with:
+- Header: "Automate?"
+- Question: "These tasks might not need to be tasks at all:\n\n• 'Remind me to take vitamins' → Use phone reminder\n• 'Check flight status' → Airline app notifications\n• 'Follow up on invoice' → Email scheduled send\n\nWant me to help set up automations?"
+- Options:
+  - "Show me options" - Explain automation for each
+  - "Complete these" - They're done or not needed
+  - "Keep as tasks" - I prefer manual tracking
+  - "Skip" - Move on
+```
+
+If user wants automation help:
+
+```
+Use AskUserQuestion with:
+- Header: "Vitamins Reminder"
+- Question: "'Remind me to take vitamins'\n\nBetter handled by:\n• iPhone reminder (recurring daily)\n• Habit app (streaks for motivation)\n• Delete task (if reminder exists)\n\nWhat works for you?"
+- Options:
+  - "Delete task" - I already have a reminder
+  - "Convert to recurring" - Make it a Todoist recurring task
+  - "Keep one-time" - This is a one-time reminder
+  - "Next task" - Show me the next automation candidate
 ```
 
 ---

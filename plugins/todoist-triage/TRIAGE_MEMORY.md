@@ -94,6 +94,10 @@ action_rules: {}
 | Duplicates removed | 0 |
 | Stale tasks cleared | 0 |
 | Projects created | 0 |
+| Quick wins completed | 0 |
+| Tasks broken down | 0 |
+| SMART improvements | 0 |
+| Patterns learned | 0 |
 
 ## Learned Rules
 
@@ -116,6 +120,35 @@ Preferences inferred from past decisions:
 - **Duplicate handling**: _Not yet determined_
 - **Preferred default priority**: _Not yet determined_
 - **Someday equivalent project**: _Not yet determined_
+
+### EF/ADHD Preferences
+
+```yaml
+# Session preferences
+ef_preferences:
+  start_with_quick_wins: true       # Begin sessions with momentum builders
+  max_decisions_per_session: 20     # Prevent decision fatigue
+  celebrate_progress: true          # Show progress messages after completions
+  breakdown_threshold: 3            # Suggest breakdown if task has 3+ vague indicators
+
+# SMART threshold for flagging
+smart_minimum_score: 60             # Tasks below this % need improvement
+
+# Quick win criteria (tasks matching any of these are "quick wins")
+quick_win_max_words: 6              # Task names this short are likely quick
+quick_win_verbs:                    # Verbs that suggest quick tasks
+  - call
+  - email
+  - text
+  - send
+  - buy
+  - order
+  - schedule
+  - book
+  - confirm
+  - cancel
+  - pay
+```
 
 ## Session History
 
