@@ -6,3 +6,6 @@
 
 # Todoist triage runtime data (SQLite db, sync state)
 plugins/todoist-triage/data/
+
+# Todoist triage memory (personal preferences, learned patterns)
+plugins/todoist-triage/TRIAGE_MEMORY.md
