@@ -1,5 +1,40 @@
 # Changelog
 
+## January 8, 2026
+
+### Security & Privacy
+
+Scrubbed PII from repo and git history before public release. Demo data now uses placeholder names, IDs, and paths.
+
+### New Features
+
+**Todoist Triage Skill**
+- SQLite-backed sync for local queries
+- Duplicate detection (exact + fuzzy via `thefuzz`)
+- Stale task finder (60+ days, no due date)
+- Missing metadata alerts
+- Project suggestions based on keywords
+- Learns from decisions via `TRIAGE_MEMORY.md`
+
+**Temporal Clustering & Pattern Discovery**
+- Groups tasks created within 10-minute windows
+- Extracts people names, concepts, action verbs
+- Learns work/personal context from user answers
+- Detects action patterns (e.g., "Call X" → `@phone` label)
+- Persists learned rules for future sessions
+
+**EF/ADHD Coaching**
+- Task sizing: quick wins, large tasks, automation candidates
+- SMART criteria scoring
+- Task breakdown coaching with subtask creation
+- Automation suggestions for repetitive tasks
+
+### Documentation
+
+Updated `CLAUDE.md` with plugin table, dependencies, and API patterns.
+
+---
+
 ## January 1, 2026
 
 ### New Features
