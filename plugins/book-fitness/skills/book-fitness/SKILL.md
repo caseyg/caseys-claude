@@ -90,7 +90,7 @@ curl -s -X POST https://mymembership.chelseapiers.com/api/user/authenticate -H "
 **Response:**
 ```json
 {
-  "user": {"userId": 12345, "centerId": 14, "firstName": "Casey", ...},
+  "user": {"userId": 12345, "centerId": 14, "firstName": "Demo", ...},
   "token": "eyJ...",
   "expiry": "2026-01-02T19:37:58.202Z"
 }
