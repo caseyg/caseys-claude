@@ -10,13 +10,6 @@ Personal automation skills for [Claude Code](https://claude.ai/code). Skills are
 /plugin install caseys-claude@caseys-claude
 ```
 
-Or clone directly:
-
-```bash
-cd ~/.claude
-git clone https://github.com/caseyg/caseys-claude.git
-```
-
 ## Available skills
 
 | Skill | Description |

@@ -11,3 +11,6 @@
 __pycache__/
 *.pyc
 .venv/
+
+# Packaged skills
+dist/

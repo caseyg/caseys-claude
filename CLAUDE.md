@@ -57,6 +57,9 @@ uvx --from skills-ref agentskills validate skills/
 # Validate single skill
 uvx --from skills-ref agentskills validate skills/<skill-name>
 
+# Package all skills as individual zips (for Claude desktop import)
+./scripts/package-skills.sh
+
 # Install pre-commit hooks
 pre-commit install
 
