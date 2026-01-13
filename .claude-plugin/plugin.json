@@ -1,0 +1,12 @@
+{
+  "name": "caseys-claude",
+  "version": "1.0.0",
+  "description": "Personal skills for Claude Code including task management, booking, and browser automation workflows.",
+  "author": {
+    "name": "Casey Gollan",
+    "url": "https://caseyagollan.com"
+  },
+  "repository": "https://github.com/caseyg/caseys-claude",
+  "license": "MIT",
+  "keywords": ["automation", "productivity", "writing"]
+}

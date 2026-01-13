@@ -4,5 +4,10 @@
 # Playwright MCP browser data
 .playwright-mcp/
 
-# Todoist triage runtime data (SQLite db, sync state, user memory)
-plugins/todoist-triage/data/
+# Runtime data directories (anywhere in the repo)
+**/data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/

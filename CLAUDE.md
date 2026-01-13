@@ -4,52 +4,67 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **Claude Code personal skills repository** - a collection of automation plugins that extend Claude Code's functionality. Skills are declarative (defined in markdown), not compiled code.
+This is a **Claude Code personal skills repository** - a collection of automation skills that extend Claude Code's functionality. Skills are declarative markdown files with YAML frontmatter for metadata.
 
 ## Repository Structure
 
 ```
-.claude-plugin/marketplace.json    # Plugin registry - lists all available plugins
-plugins/
-  <plugin-name>/
-    .claude-plugin/plugin.json     # Plugin metadata (name, version, description)
-    skills/
-      <skill-name>/
-        SKILL.md                   # Skill implementation guide
+skills/
+  <skill-name>/
+    SKILL.md                   # Skill definition with YAML frontmatter
+    assets/                    # Optional supplementary files (templates, configs)
 ```
 
-## Creating New Plugins
+## SKILL.md Format
 
-1. Create a new directory under `plugins/`
-2. Add `.claude-plugin/plugin.json` with name, description, version
-3. Add skills under `skills/<skill-name>/SKILL.md`
-4. Register the plugin in `.claude-plugin/marketplace.json`
+Each skill has a SKILL.md with YAML frontmatter:
 
-Use the `compound-engineering:create-agent-skill` skill for guided plugin creation.
+```yaml
+---
+name: skill-name
+description: When to use this skill and what it does.
+---
 
-## SKILL.md Structure
+# Skill Title
 
-A skill file should include:
-- **Description**: When to use this skill
-- **Trigger Phrases**: Natural language or `/slash-command` invocations
-- **Prerequisites**: Required tools (1Password CLI, dev-browser, etc.)
-- **Workflow**: Step-by-step implementation guide with code examples
-- **API Reference**: Endpoints, request/response formats (if applicable)
-- **Error Handling**: Common failure cases and recovery strategies
+## Trigger Phrases
+## Prerequisites
+## Workflow
+## Error Handling
+```
 
-## Current Plugins
+## Creating New Skills
 
-| Plugin | Description | Dependencies |
-|--------|-------------|--------------|
-| `reorder-basics` | Amazon Buy Again automation | 1Password CLI, dev-browser |
-| `book-fitness` | Chelsea Piers class booking via REST API | 1Password CLI |
-| `coop-shift` | Park Slope Food Coop shift booking | dev-browser |
-| `tripit-export` | Export TripIt travel data to JSON | dev-browser |
-| `things-to-todoist` | Migrate Things 3 tasks to Todoist | Todoist MCP, Python (things.py, thefuzz) |
+1. Create a new directory under `skills/`
+2. Add `SKILL.md` with YAML frontmatter containing `name` and `description`
+3. Validate with `uvx --from skills-ref agentskills validate skills/<skill-name>`
+
+Use the `compound-engineering:create-agent-skill` skill for guided skill creation.
 
 ## Key Integration Points
 
-- **1Password CLI**: Secure credential retrieval via `op item get`. Cache tokens in 1Password with `op item edit`.
-- **dev-browser plugin**: Browser automation with persistent state. Start with `./server.sh`, connect via `@/client.js`.
-- **Todoist MCP**: Use `mcp__todoist__*` tools for task management with built-in rate limiting.
-- **AskUserQuestion**: User confirmation before purchases/destructive actions. Batch multiple questions in one call.
+- **1Password CLI**: Credential retrieval via `op item get`, token caching via `op item edit`
+- **dev-browser plugin**: Browser automation with persistent state for sites without APIs
+- **Todoist MCP**: Task management via `mcp__todoist__*` tools with built-in rate limiting
+- **AskUserQuestion**: User confirmation before purchases/destructive actions
+
+## Development
+
+```bash
+# Validate all skills
+uvx --from skills-ref agentskills validate skills/
+
+# Validate single skill
+uvx --from skills-ref agentskills validate skills/<skill-name>
+
+# Install pre-commit hooks
+pre-commit install
+
+# Install Python dependencies (for things-to-todoist, todoist-triage)
+uv pip install things.py thefuzz python-Levenshtein
+```
+
+## References
+
+- [Agent Skills Specification](https://agentskills.io/specification)
+- [Claude Code Skills Documentation](https://docs.claude.com/en/skills)

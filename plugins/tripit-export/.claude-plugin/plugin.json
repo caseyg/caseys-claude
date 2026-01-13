@@ -1,5 +1,0 @@
-{
-  "name": "tripit-export",
-  "description": "Export TripIt travel data to JSON using undocumented API v2",
-  "version": "1.0.0"
-}

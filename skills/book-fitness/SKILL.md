@@ -1,10 +1,13 @@
+---
+name: book-fitness
+description: Book fitness classes at Chelsea Piers via REST API with JWT caching.
+  Use when the user asks to book a class, check yoga schedule, sign up for
+  fitness, or book a class exactly 24 hours before it starts.
+---
+
 # Book Fitness
 
 A skill for checking and booking fitness classes at Chelsea Piers via direct API calls.
-
-## Description
-
-This skill should be used when the user asks to "book a class", "check yoga schedule", "sign up for fitness", or wants to book a class exactly 24 hours before it starts. It uses the Chelsea Piers REST API directly - no browser automation needed.
 
 ## Trigger Phrases
 
@@ -14,8 +17,8 @@ This skill should be used when the user asks to "book a class", "check yoga sche
 - "what classes are available tomorrow"
 - "sign me up for [class name]"
 - "cancel my [class] booking"
-- "/book-fitness [class type]"
-- "/book-fitness" (defaults to yoga)
+- `/book-fitness [class type]`
+- `/book-fitness` (defaults to yoga)
 
 ## Prerequisites
 
@@ -140,10 +143,10 @@ curl -s -X POST "https://mymembership.chelseapiers.com/api/classes/search-bookin
 ```
 
 **Key fields:**
-- `booking.id` → The `bookingId` for create-booking
-- `participationListIndex` → `-1` = not booked, else your position
-- `waitingListIndex` → `-1` = not on waitlist
-- `bookedCount` vs `classCapacity` → availability
+- `booking.id` -> The `bookingId` for create-booking
+- `participationListIndex` -> `-1` = not booked, else your position
+- `waitingListIndex` -> `-1` = not on waitlist
+- `bookedCount` vs `classCapacity` -> availability
 
 ### Step 4: Present Options to User
 
@@ -209,11 +212,11 @@ booking_opens = class_start - 24h = "2026-01-01T18:30:00"
 current_time = now()
 
 if current_time >= booking_opens:
-    → Book immediately
+    -> Book immediately
 elif booking_opens - current_time < 5 minutes:
-    → Wait and retry
+    -> Wait and retry
 else:
-    → Tell user when booking opens
+    -> Tell user when booking opens
 ```
 
 ### Handling "Too Early" Error
@@ -254,7 +257,7 @@ If `create-booking` returns `booking.tooEarlyToBookParticipant`:
    Which would you like to book?
    ```
 4. User picks #2
-5. Book it → success
+5. Book it -> success
 6. "Booked Yoga Flow at 8:30 AM tomorrow at Prospect Heights"
 
 ## Tools Used

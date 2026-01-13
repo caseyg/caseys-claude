@@ -1,10 +1,13 @@
+---
+name: coop-shift
+description: Find and book Park Slope Food Coop shifts using browser automation.
+  Use when the user asks to book a coop shift, find available shifts, check
+  coop schedule, or manage PSFC work assignments.
+---
+
 # Coop Shift
 
 A skill for finding and booking Park Slope Food Coop shifts using browser automation.
-
-## Description
-
-This skill should be used when the user asks to "book a coop shift", "find available shifts", "check my coop schedule", or wants to manage their PSFC work assignments. It uses browser automation since PSFC is a server-rendered Django app without a REST API.
 
 ## Trigger Phrases
 
@@ -13,7 +16,7 @@ This skill should be used when the user asks to "book a coop shift", "find avail
 - "check my coop schedule"
 - "cancel my coop shift"
 - "what shifts are available this week"
-- "/coop-shift [shift type]"
+- `/coop-shift [shift type]`
 
 ## Prerequisites
 
@@ -30,7 +33,7 @@ brew install --cask 1password-cli
 ```
 
 Then enable CLI integration in the 1Password app:
-1. Open 1Password → Settings → Developer
+1. Open 1Password -> Settings -> Developer
 2. Enable "Integrate with 1Password CLI"
 
 ## Member Info
@@ -81,15 +84,15 @@ Common job types available in the dropdown:
 
 | Job | Notes |
 |-----|-------|
-| Checkout 💳 | Register operation |
-| Receiving: Lifting 🚚 | Heavy lifting required |
-| Receiving: Stocking 📦 | Shelf stocking |
-| Flex Worker 🥫 | Flexible assignments |
-| Cleaning 🏝 | End of day cleaning |
-| Inventory 📋 | Stock counting |
-| 🥕 Carrot 🥕 | Bonus shift (earn carrots) |
+| Checkout | Register operation |
+| Receiving: Lifting | Heavy lifting required |
+| Receiving: Stocking | Shelf stocking |
+| Flex Worker | Flexible assignments |
+| Cleaning | End of day cleaning |
+| Inventory | Stock counting |
+| Carrot | Bonus shift (earn carrots) |
 
-Shifts marked with 🥕 are "carrot shifts" - completing 5 earns a bonus.
+Shifts marked with carrot emoji are "carrot shifts" - completing 5 earns a bonus.
 
 ## Constraints
 
@@ -171,15 +174,15 @@ Or use URL parameters directly.
 
 Take a snapshot and parse the shift calendar. Available shifts appear as links:
 - Format: `{time} {job_type} {emoji}`
-- Example: `6:00pm Checkout 💳`
-- Booked shifts show ✅: `6:00pm Checkout 💳 ✅`
+- Example: `6:00pm Checkout`
+- Booked shifts show checkmark: `6:00pm Checkout (booked)`
 
 ### Step 6: Present Options to User
 
 Show matching shifts with:
 - Date and time
 - Job type
-- Whether it's a carrot shift (🥕)
+- Whether it's a carrot shift
 
 Use `AskUserQuestion` to confirm which shift to book.
 
@@ -258,14 +261,14 @@ When booking, a radio button allows selecting who receives shift credit.
    ```
    Found 3 Checkout shifts this weekend:
 
-   1. Saturday Jan 10, 6:00 PM - Checkout 💳
-   2. Sunday Jan 11, 10:30 AM - Checkout 💳
-   3. Sunday Jan 11, 3:30 PM - Checkout 💳
+   1. Saturday Jan 10, 6:00 PM - Checkout
+   2. Sunday Jan 11, 10:30 AM - Checkout
+   3. Sunday Jan 11, 3:30 PM - Checkout
 
    Which would you like to book?
    ```
 4. User picks #1
-5. Book it → fill initials → confirm
+5. Book it -> fill initials -> confirm
 6. "Booked! You're scheduled for Checkout at 6:00 PM on Saturday Jan 10."
 
 ## Tools Used

@@ -1,3 +1,10 @@
+---
+name: not-ai
+description: Rewrite AI-sounding text into clear, natural plain language. Use when
+  the user asks to make text sound less like AI, rewrite in plain language,
+  de-AI text, or make writing more natural.
+---
+
 # Not AI
 
 Rewrite text in plain language. Write like a knowledgeable person explaining something clearly, not like a press release or academic abstract.

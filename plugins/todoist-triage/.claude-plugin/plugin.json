@@ -1,5 +1,0 @@
-{
-  "name": "todoist-triage",
-  "description": "Interactive Todoist inbox triage with duplicate detection, stale task cleanup, and intelligent organization suggestions",
-  "version": "1.0.0"
-}

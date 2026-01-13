@@ -1,10 +1,13 @@
+---
+name: reorder-basics
+description: Reorder items from Amazon Buy Again page using browser automation and
+  1Password integration. Use when the user asks to reorder, buy again, or
+  repurchase an item from Amazon.
+---
+
 # Reorder Basics
 
 A skill for quickly reordering items from Amazon's Buy Again page using browser automation and 1Password integration.
-
-## Description
-
-This skill should be used when the user asks to "reorder", "buy again", or "repurchase" an item from Amazon. It automates the entire process of logging in, finding the item, confirming details, and completing the purchase.
 
 ## Trigger Phrases
 
@@ -12,7 +15,7 @@ This skill should be used when the user asks to "reorder", "buy again", or "repu
 - "buy [item] again from Amazon"
 - "repurchase [item]"
 - "order more [item]"
-- "/reorder-basics [item]"
+- `/reorder-basics [item]`
 
 ## Prerequisites
 
@@ -29,7 +32,7 @@ brew install --cask 1password-cli
 ```
 
 Then the user needs to enable CLI integration in the 1Password app:
-1. Open 1Password → Settings → Developer
+1. Open 1Password -> Settings -> Developer
 2. Enable "Integrate with 1Password CLI"
 
 ## Workflow

@@ -1,5 +1,30 @@
 # Changelog
 
+## January 13, 2026
+
+### Repository Restructure
+
+Simplified repo structure following the [Agent Skills Specification](https://agentskills.io/specification).
+
+**Structure changes:**
+- Flattened `plugins/<name>/.claude-plugin/skills/<name>/` → `skills/<name>/`
+- Moved plugin metadata from JSON files to YAML frontmatter in SKILL.md
+- Added `assets/` directory for supplementary files per spec
+- Single `.claude-plugin/` for marketplace compatibility
+
+**New skill:**
+- **not-ai** - Rewrites AI-sounding text into clear, natural plain language
+
+**Development:**
+- Added pre-commit hook with skills-ref validation via `uvx`
+- Updated all Python install instructions to use `uv pip`
+
+**Documentation:**
+- Added spec references to CLAUDE.md
+- Updated README with marketplace install commands
+
+---
+
 ## January 8, 2026
 
 ### Security & Privacy

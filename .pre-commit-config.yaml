@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: validate-skills
+        name: Validate Agent Skills
+        entry: bash -c 'for skill in skills/*/; do uvx --from skills-ref agentskills validate "$skill" || exit 1; done'
+        language: system
+        files: ^skills/.*SKILL\.md$
+        pass_filenames: false

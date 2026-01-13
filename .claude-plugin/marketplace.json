@@ -1,83 +1,15 @@
 {
-  "name": "cag-skills",
+  "name": "caseys-claude",
   "owner": {
     "name": "Casey Gollan",
-    "email": "hello@caseyagollan.com"
-  },
-  "metadata": {
-    "description": "Personal automation skills for Claude Code",
-    "pluginRoot": "./plugins"
+    "url": "https://caseyagollan.com"
   },
   "plugins": [
     {
-      "name": "reorder-basics",
-      "source": "./reorder-basics",
-      "description": "Reorder household items from Amazon Buy Again using 1Password integration",
-      "version": "1.0.0",
-      "author": {
-        "name": "Casey Gollan"
-      },
-      "keywords": ["amazon", "shopping", "automation", "1password"]
-    },
-    {
-      "name": "book-fitness",
-      "source": "./book-fitness",
-      "description": "Book fitness classes at Chelsea Piers with 24h advance booking support",
-      "version": "1.0.0",
-      "author": {
-        "name": "Casey Gollan"
-      },
-      "keywords": ["chelsea-piers", "fitness", "yoga", "booking", "1password"]
-    },
-    {
-      "name": "coop-shift",
-      "source": "./coop-shift",
-      "description": "Find and book Park Slope Food Coop shifts using browser automation",
-      "version": "1.0.0",
-      "author": {
-        "name": "Casey Gollan"
-      },
-      "keywords": ["psfc", "food-coop", "shifts", "scheduling", "browser-automation"]
-    },
-    {
-      "name": "tripit-export",
-      "source": "./tripit-export",
-      "description": "Export TripIt travel data to JSON using undocumented API v2",
-      "version": "1.0.0",
-      "author": {
-        "name": "Casey Gollan"
-      },
-      "keywords": ["tripit", "travel", "export", "json", "backup"]
-    },
-    {
-      "name": "things-to-todoist",
-      "source": "./things-to-todoist",
-      "description": "Migrate tasks, projects, and areas from Things 3 for Mac to Todoist",
-      "version": "1.0.0",
-      "author": {
-        "name": "Casey Gollan"
-      },
-      "keywords": ["things", "todoist", "migration", "tasks", "productivity"]
-    },
-    {
-      "name": "todoist-triage",
-      "source": "./todoist-triage",
-      "description": "Interactive Todoist inbox triage with duplicate detection, stale task cleanup, and intelligent organization suggestions",
-      "version": "1.0.0",
-      "author": {
-        "name": "Casey Gollan"
-      },
-      "keywords": ["todoist", "triage", "inbox", "duplicates", "cleanup", "organization", "productivity"]
-    },
-    {
-      "name": "not-ai",
-      "source": "./not-ai",
-      "description": "Rewrite AI-sounding text into clear, natural plain language",
-      "version": "1.0.0",
-      "author": {
-        "name": "Casey Gollan"
-      },
-      "keywords": ["writing", "plain-language", "editing", "rewriting", "style"]
+      "name": "caseys-claude",
+      "source": "./",
+      "description": "Personal skills for Claude Code",
+      "version": "1.0.0"
     }
   ]
 }
