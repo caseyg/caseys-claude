@@ -12,6 +12,7 @@ A collection of personal automation plugins for [Claude Code](https://claude.ai/
 | **tripit-export** | Export TripIt travel data to JSON |
 | **things-to-todoist** | Migrate tasks from Things 3 to Todoist |
 | **todoist-triage** | Inbox triage with duplicate detection, stale task cleanup, and ADHD-friendly coaching |
+| **not-ai** | Rewrite AI-sounding text into clear, natural plain language |
 
 ## Dependencies
 
