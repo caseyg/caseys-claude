@@ -6,8 +6,8 @@ Personal automation skills for [Claude Code](https://claude.ai/code). Skills are
 
 ```bash
 # Add from marketplace
-/plugin marketplace add caseyg/caseys-claude
-/plugin install caseys-claude@caseys-claude
+/plugin marketplace add caseyg/caseyg
+/plugin install caseyg@caseys-claude
 ```
 
 ## Available skills
