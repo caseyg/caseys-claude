@@ -1,0 +1,9 @@
+# Local configuration with personal settings
+*.local.md
+
+# Runtime data (downloads, cache)
+data/
+
+# Node modules if running scripts locally
+node_modules/
+package-lock.json

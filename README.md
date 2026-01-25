@@ -19,6 +19,7 @@ Personal automation skills for [Claude Code](https://claude.ai/code). Skills are
 | **coop-shift** | Park Slope Food Coop shift finder with browser automation |
 | **not-ai** | Rewrite AI-sounding text into clear, natural plain language |
 | **reorder-basics** | Amazon Buy Again automation with 1Password integration |
+| **remarkable** | reMarkable tablet sync: upload/download docs, Morning Pages to Obsidian |
 | **things-to-todoist** | Migrate tasks from Things 3 to Todoist |
 | **timing-analysis** | Time tracking analysis from Timing App |
 | **todoist-triage** | Inbox triage with duplicate detection and ADHD-friendly coaching |
@@ -31,6 +32,8 @@ Different skills require different integrations:
 - **1Password CLI** (`op`) - Secure credential storage for API keys and tokens
 - **dev-browser** - Browser automation for sites without APIs
 - **LunchMoney API** - Financial data for analyze-spending
+- **rmapi-js** - reMarkable cloud API (TypeScript)
+- **rmscene** - reMarkable `.rm` file parsing (Python: `uv pip install rmscene`)
 - **Timing App API** - Time tracking data for timing-analysis
 - **Todoist MCP** - Task management via `mcp__todoist__*` tools
 - **Python** - For Things 3 export (`things.py`, `thefuzz`)
@@ -44,6 +47,8 @@ Skills activate via natural language or slash commands:
 - "Reorder my Amazon basics"
 - "Book yoga tomorrow at Chelsea Piers"
 - "Find an available coop shift"
+- "Sync my Morning Pages to Obsidian"
+- "Upload this PDF to my reMarkable"
 - "Triage my Todoist inbox"
 - `/not-ai` - Rewrite text in plain language
 

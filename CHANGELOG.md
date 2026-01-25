@@ -4,6 +4,13 @@
 
 ### New Skills
 
+- **remarkable** - reMarkable tablet integration via rmapi-js. Upload PDFs/EPUBs, download documents with annotations, backup notebooks, and sync Morning Pages to Obsidian. Features:
+  - Device registration with 1Password token storage
+  - List/search documents with caching
+  - Upload PDF/EPUB to folders
+  - Download with annotation rendering (Python/rmscene)
+  - **Morning Pages sync**: Extracts typed text from `.rm` v6 format, converts reMarkable formatting (headers, bullets, checkboxes, bold) to Markdown, syncs to Obsidian Daily notes with intelligent merging
+
 - **analyze-spending** - Financial analysis using LunchMoney API. Includes subscription auditing with 12-month transaction cross-referencing, spending by category, and an interactive interview mode to validate recurring charges and make cancellation decisions. Caches data locally with smart refresh thresholds.
 
 - **timing-analysis** - Analyze time tracking data from the Timing App. Query by natural language periods ("today", "this week", "last month"), see project breakdowns, and generate time reports.
