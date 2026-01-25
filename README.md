@@ -14,20 +14,24 @@ Personal automation skills for [Claude Code](https://claude.ai/code). Skills are
 
 | Skill | Description |
 |-------|-------------|
-| **reorder-basics** | Amazon Buy Again automation with 1Password integration |
+| **analyze-spending** | Financial analysis with LunchMoney API, subscription auditing |
 | **book-fitness** | Chelsea Piers class booking via REST API with JWT caching |
 | **coop-shift** | Park Slope Food Coop shift finder with browser automation |
-| **tripit-export** | Export TripIt travel data to JSON |
-| **things-to-todoist** | Migrate tasks from Things 3 to Todoist |
-| **todoist-triage** | Inbox triage with duplicate detection and ADHD-friendly coaching |
 | **not-ai** | Rewrite AI-sounding text into clear, natural plain language |
+| **reorder-basics** | Amazon Buy Again automation with 1Password integration |
+| **things-to-todoist** | Migrate tasks from Things 3 to Todoist |
+| **timing-analysis** | Time tracking analysis from Timing App |
+| **todoist-triage** | Inbox triage with duplicate detection and ADHD-friendly coaching |
+| **tripit-export** | Export TripIt travel data to JSON |
 
 ## Dependencies
 
 Different skills require different integrations:
 
-- **1Password CLI** (`op`) - Secure credential storage
+- **1Password CLI** (`op`) - Secure credential storage for API keys and tokens
 - **dev-browser** - Browser automation for sites without APIs
+- **LunchMoney API** - Financial data for analyze-spending
+- **Timing App API** - Time tracking data for timing-analysis
 - **Todoist MCP** - Task management via `mcp__todoist__*` tools
 - **Python** - For Things 3 export (`things.py`, `thefuzz`)
 
@@ -35,6 +39,8 @@ Different skills require different integrations:
 
 Skills activate via natural language or slash commands:
 
+- "Analyze my spending" or "Find subscriptions to cancel"
+- "How did I spend my time this week?"
 - "Reorder my Amazon basics"
 - "Book yoga tomorrow at Chelsea Piers"
 - "Find an available coop shift"

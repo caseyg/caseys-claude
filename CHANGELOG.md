@@ -1,5 +1,15 @@
 # Changelog
 
+## January 25, 2026
+
+### New Skills
+
+- **analyze-spending** - Financial analysis using LunchMoney API. Includes subscription auditing with 12-month transaction cross-referencing, spending by category, and an interactive interview mode to validate recurring charges and make cancellation decisions. Caches data locally with smart refresh thresholds.
+
+- **timing-analysis** - Analyze time tracking data from the Timing App. Query by natural language periods ("today", "this week", "last month"), see project breakdowns, and generate time reports.
+
+---
+
 ## January 13, 2026
 
 ### Repository Restructure
