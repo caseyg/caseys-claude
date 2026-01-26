@@ -1,5 +1,20 @@
 # Changelog
 
+## January 26, 2026
+
+### remarkable v1.1.0
+
+- **Numbered list support** - Morning Pages sync now converts numbered lists to Markdown (`1. 2. 3.` and nested `a. b. c.`). Implementation is future-proofed for when rmscene adds ParagraphStyle support.
+- Added `NumberedListState` class for stateful list tracking
+- Documented all supported Markdown formats in SKILL.md
+
+### Repository
+
+- Added semantic versioning guidelines to CLAUDE.md
+- Added deployment checklist to CLAUDE.md
+
+---
+
 ## January 25, 2026
 
 ### New Skills

@@ -19,6 +19,8 @@ Configuration:
     Set OBSIDIAN_DAILY_PATH environment variable or edit DEFAULT_OBSIDIAN_PATH below.
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import json
@@ -29,13 +31,28 @@ from datetime import datetime
 from collections import defaultdict
 
 # Try to import rmscene - will fail gracefully if not installed
+RMSCENE_AVAILABLE = False
+read_tree = None  # type: ignore
+TextDocument = None  # type: ignore
+
 try:
-    from rmscene import read_tree
-    from rmscene.text import TextDocument
-    from rmscene.scene_items import ParagraphStyle
+    from rmscene import read_tree  # type: ignore[no-redef]
+    from rmscene.text import TextDocument  # type: ignore[no-redef]
+    from rmscene.scene_items import ParagraphStyle  # type: ignore[no-redef]
     RMSCENE_AVAILABLE = True
 except ImportError:
-    RMSCENE_AVAILABLE = False
+    # Stub for when rmscene not installed
+    import enum
+
+    class ParagraphStyle(enum.IntEnum):  # type: ignore[no-redef]
+        BASIC = 0
+        PLAIN = 1
+        HEADING = 2
+        BOLD = 3
+        BULLET = 4
+        BULLET2 = 5
+        CHECKBOX = 6
+        CHECKBOX_CHECKED = 7
     print("Warning: rmscene not installed. Run: uv pip install rmscene")
 
 # Configuration
@@ -181,12 +198,88 @@ def download_document(doc: dict, force: bool = False) -> Path | None:
     return extracted_path
 
 
-def style_to_markdown_prefix(style) -> tuple[str, str]:
+# Expected numbered list style values (when rmscene adds support)
+# Based on reMarkable's UI ordering: bullets (4-5), checkboxes (6-7), then numbered lists
+NUMBERED_LIST_STYLE = 8    # Expected: top-level numbered list (1. 2. 3.)
+NUMBERED_LIST2_STYLE = 9   # Expected: nested numbered list (a. b. c. or i. ii. iii.)
+
+
+class NumberedListState:
+    """
+    Track numbering state for ordered lists.
+
+    Numbered lists require stateful tracking because each item increments
+    the counter. This class manages counters for both top-level (1. 2. 3.)
+    and nested (a. b. c.) numbered lists.
+    """
+
+    def __init__(self):
+        self.top_level_count = 0
+        self.nested_count = 0
+        self._last_style = None
+
+    def reset(self):
+        """Reset all counters (called when leaving numbered list context)."""
+        self.top_level_count = 0
+        self.nested_count = 0
+        self._last_style = None
+
+    def get_prefix(self, style_value: int) -> str:
+        """
+        Get the numbered prefix for the current list item.
+
+        Args:
+            style_value: The paragraph style integer value
+
+        Returns:
+            Markdown prefix like "1. " or "   a. "
+        """
+        if style_value == NUMBERED_LIST_STYLE:
+            # Transitioning from nested back to top-level resets nested counter
+            if self._last_style == NUMBERED_LIST2_STYLE:
+                self.nested_count = 0
+            self.top_level_count += 1
+            self._last_style = style_value
+            return f"{self.top_level_count}. "
+
+        elif style_value == NUMBERED_LIST2_STYLE:
+            self.nested_count += 1
+            self._last_style = style_value
+            # Use lowercase letters for nested lists (a. b. c. ... z. aa. ab. ...)
+            letter = self._number_to_letter(self.nested_count)
+            return f"   {letter}. "
+
+        return ""
+
+    @staticmethod
+    def _number_to_letter(n: int) -> str:
+        """Convert number to letter sequence: 1->a, 2->b, ..., 26->z, 27->aa, etc."""
+        result = ""
+        while n > 0:
+            n -= 1
+            result = chr(ord('a') + (n % 26)) + result
+            n //= 26
+        return result
+
+
+def is_numbered_list_style(style_value: int) -> bool:
+    """Check if a style value represents a numbered list."""
+    return style_value in (NUMBERED_LIST_STYLE, NUMBERED_LIST2_STYLE)
+
+
+def style_to_markdown_prefix(style, numbered_state: NumberedListState | None = None) -> tuple[str, str]:
     """
     Convert ParagraphStyle to Markdown prefix and suffix.
 
     Returns (prefix, suffix) tuple for wrapping the paragraph text.
+
+    Args:
+        style: ParagraphStyle enum value
+        numbered_state: Optional NumberedListState for tracking numbered lists
     """
+    # Get the integer value for comparison with expected numbered list styles
+    style_value = style.value if hasattr(style, 'value') else int(style)
+
     if style == ParagraphStyle.HEADING:
         return "# ", ""
     elif style == ParagraphStyle.BOLD:
@@ -199,19 +292,28 @@ def style_to_markdown_prefix(style) -> tuple[str, str]:
         return "- [ ] ", ""
     elif style == ParagraphStyle.CHECKBOX_CHECKED:
         return "- [x] ", ""
+    elif is_numbered_list_style(style_value):
+        # Handle numbered lists with state tracking
+        if numbered_state:
+            prefix = numbered_state.get_prefix(style_value)
+            return prefix, ""
+        else:
+            # Fallback without state (won't have proper numbering)
+            return "1. ", ""
     else:
         # PLAIN, BASIC, or unknown - no prefix
         return "", ""
 
 
 def is_list_style(style) -> bool:
-    """Check if a paragraph style is a list item (bullet, checkbox)."""
+    """Check if a paragraph style is a list item (bullet, checkbox, or numbered)."""
+    style_value = style.value if hasattr(style, 'value') else int(style)
     return style in (
         ParagraphStyle.BULLET,
         ParagraphStyle.BULLET2,
         ParagraphStyle.CHECKBOX,
         ParagraphStyle.CHECKBOX_CHECKED,
-    )
+    ) or is_numbered_list_style(style_value)
 
 
 def extract_text_from_rm(rm_file: Path) -> str:
@@ -219,14 +321,19 @@ def extract_text_from_rm(rm_file: Path) -> str:
     Extract text content from a .rm file with proper Markdown formatting.
 
     Uses TextDocument.from_scene_item() to parse paragraph styles and
-    converts them to Markdown syntax (headers, bullets, checkboxes, bold).
+    converts them to Markdown syntax (headers, bullets, checkboxes, bold,
+    and numbered lists).
 
     Handles line spacing correctly:
     - Single newline between consecutive list items
     - Double newline between paragraphs
     - Double newline when transitioning between list and non-list content
+
+    Numbered lists are tracked with state to maintain proper numbering:
+    - Top-level: 1. 2. 3.
+    - Nested: a. b. c.
     """
-    if not RMSCENE_AVAILABLE:
+    if not RMSCENE_AVAILABLE or read_tree is None or TextDocument is None:
         return ""
 
     try:
@@ -242,6 +349,8 @@ def extract_text_from_rm(rm_file: Path) -> str:
 
                 result_lines = []
                 prev_was_list = False
+                prev_was_numbered = False
+                numbered_state = NumberedListState()
 
                 for para in doc.contents:
                     text = str(para).strip()
@@ -250,8 +359,16 @@ def extract_text_from_rm(rm_file: Path) -> str:
 
                     # Get the paragraph style
                     style = para.style.value if para.style else ParagraphStyle.PLAIN
-                    prefix, suffix = style_to_markdown_prefix(style)
+                    style_value = style.value if hasattr(style, 'value') else int(style)
                     curr_is_list = is_list_style(style)
+                    curr_is_numbered = is_numbered_list_style(style_value)
+
+                    # Reset numbered list state when leaving numbered context
+                    if prev_was_numbered and not curr_is_numbered:
+                        numbered_state.reset()
+
+                    # Get prefix/suffix with numbered state tracking
+                    prefix, suffix = style_to_markdown_prefix(style, numbered_state)
 
                     # Apply Markdown formatting
                     formatted_line = f"{prefix}{text}{suffix}"
@@ -269,6 +386,7 @@ def extract_text_from_rm(rm_file: Path) -> str:
                         result_lines.append(formatted_line)
 
                     prev_was_list = curr_is_list
+                    prev_was_numbered = curr_is_numbered
 
                 return '\n'.join(result_lines)
 

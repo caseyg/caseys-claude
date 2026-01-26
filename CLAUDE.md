@@ -22,6 +22,7 @@ Each skill has a SKILL.md with YAML frontmatter:
 ```yaml
 ---
 name: skill-name
+version: 1.0.0
 description: When to use this skill and what it does.
 ---
 
@@ -32,6 +33,35 @@ description: When to use this skill and what it does.
 ## Workflow
 ## Error Handling
 ```
+
+## Semantic Versioning
+
+Skills use [Semantic Versioning](https://semver.org/) (MAJOR.MINOR.PATCH):
+
+- **MAJOR** (1.0.0 → 2.0.0): Breaking changes
+  - Renamed/removed trigger phrases
+  - Changed required prerequisites
+  - Incompatible workflow changes
+  - Removed features
+
+- **MINOR** (1.0.0 → 1.1.0): New features, backwards compatible
+  - New trigger phrases
+  - New workflow steps
+  - New optional parameters
+  - Enhanced output formats
+
+- **PATCH** (1.0.0 → 1.0.1): Bug fixes, backwards compatible
+  - Bug fixes
+  - Documentation updates
+  - Performance improvements
+  - Dependency updates (non-breaking)
+
+### Version Update Checklist
+
+When modifying a skill:
+1. Determine change type (breaking, feature, fix)
+2. Update `version` in SKILL.md frontmatter
+3. Document changes in commit message
 
 ## Creating New Skills
 
@@ -65,6 +95,71 @@ pre-commit install
 
 # Install Python dependencies (for things-to-todoist, todoist-triage)
 uv pip install things.py thefuzz python-Levenshtein
+```
+
+## Deployment
+
+When deploying changes to skills, follow this checklist:
+
+### 1. Bump Version
+
+For each modified skill, update the `version` field in `SKILL.md`:
+
+```yaml
+---
+name: skill-name
+version: 1.1.0  # Bump according to semantic versioning rules above
+description: ...
+---
+```
+
+### 2. Update README.md
+
+If the change affects user-facing features:
+- Update the skill description in the "Available skills" table
+- Add new trigger phrases to the "Usage" section
+- Document new dependencies if added
+
+### 3. Update CHANGELOG.md
+
+Add entry at the top with today's date:
+
+```markdown
+## Month Day, Year
+
+### skill-name vX.Y.Z
+
+- Brief description of changes
+- New features added
+- Bug fixes
+```
+
+Group multiple skill updates under the same date heading.
+
+### 4. Validate
+
+```bash
+uvx --from skills-ref agentskills validate skills/<skill-name>
+```
+
+### 5. Commit and Push
+
+```bash
+git add -A
+git commit -m "skill-name: Brief description of changes (vX.Y.Z)"
+git push
+```
+
+### Quick Deploy Command
+
+For simple changes, run all steps:
+
+```bash
+# After editing skill files, validate and deploy
+uvx --from skills-ref agentskills validate skills/<skill-name> && \
+git add -A && \
+git commit -m "<skill-name>: <description> (vX.Y.Z)" && \
+git push
 ```
 
 ## References

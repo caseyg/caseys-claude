@@ -1,5 +1,6 @@
 ---
 name: remarkable
+version: 1.1.0
 description: Manage reMarkable tablet documents - upload PDFs/EPUBs, download with annotations, backup notebooks, and list/search documents. Use when the user mentions reMarkable, wants to send files to their tablet, download annotated PDFs, or backup their notebooks.
 ---
 
@@ -511,9 +512,22 @@ The reMarkable v6 format stores typed text in CRDT (Conflict-free Replicated Dat
 1. Reads `.content` file to get page metadata and modification timestamps
 2. For each `.rm` file, parses the `SceneTree` structure
 3. Extracts text from `root_text.items._items` which contains `CrdtSequenceItem` objects
-4. Joins text fragments and organizes by date
+4. Converts paragraph styles to Markdown formatting
+5. Joins text fragments and organizes by date
 
-**Note**: Handwritten content is NOT extracted (would require OCR). Only typed text from the reMarkable keyboard is synced.
+**Supported Markdown Formatting:**
+| reMarkable Style | Markdown Output |
+|------------------|-----------------|
+| Heading | `# Heading` |
+| Bold | `**Bold text**` |
+| Bullet list | `- Item` |
+| Nested bullet | `  - Nested item` |
+| Checkbox | `- [ ] Task` |
+| Checked checkbox | `- [x] Done` |
+| Numbered list | `1. First`, `2. Second` |
+| Nested numbered | `   a. Sub-item`, `   b. Sub-item` |
+
+**Note**: Handwritten content is NOT extracted (would require OCR). Only typed text from the reMarkable keyboard is synced. Numbered list support is future-proofed for when rmscene adds ParagraphStyle support (expected style values 8-9).
 
 #### Caching
 
