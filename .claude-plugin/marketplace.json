@@ -7,61 +7,71 @@
   "plugins": [
     {
       "name": "analyze-spending",
-      "source": "./",
+      "source": "./skills/analyze-spending",
+      "skills": "./",
       "description": "Analyze finances using LunchMoney API for spending patterns, budget analysis, and subscription audits.",
       "version": "1.0.0"
     },
     {
       "name": "book-fitness",
-      "source": "./",
+      "source": "./skills/book-fitness",
+      "skills": "./",
       "description": "Book fitness classes at Chelsea Piers via REST API with JWT caching.",
       "version": "1.0.0"
     },
     {
       "name": "coop-shift",
-      "source": "./",
+      "source": "./skills/coop-shift",
+      "skills": "./",
       "description": "Find and book Park Slope Food Coop shifts using browser automation.",
       "version": "1.0.0"
     },
     {
       "name": "not-ai",
-      "source": "./",
+      "source": "./skills/not-ai",
+      "skills": "./",
       "description": "Rewrite AI-sounding text into clear, natural plain language.",
       "version": "1.0.0"
     },
     {
       "name": "remarkable",
-      "source": "./",
+      "source": "./skills/remarkable",
+      "skills": "./",
       "description": "Manage reMarkable tablet documents - upload PDFs/EPUBs, download with annotations, backup notebooks.",
       "version": "1.0.0"
     },
     {
       "name": "reorder-basics",
-      "source": "./",
+      "source": "./skills/reorder-basics",
+      "skills": "./",
       "description": "Reorder items from Amazon Buy Again page using browser automation and 1Password.",
       "version": "1.0.0"
     },
     {
       "name": "things-to-todoist",
-      "source": "./",
+      "source": "./skills/things-to-todoist",
+      "skills": "./",
       "description": "Migrate tasks from Things 3 to Todoist with duplicate detection and merge support.",
       "version": "1.0.0"
     },
     {
       "name": "timing-analysis",
-      "source": "./",
+      "source": "./skills/timing-analysis",
+      "skills": "./",
       "description": "Analyze time tracking data from Timing App for daily, weekly, or custom periods.",
       "version": "1.0.0"
     },
     {
       "name": "todoist-triage",
-      "source": "./",
+      "source": "./skills/todoist-triage",
+      "skills": "./",
       "description": "Triage and clean up Todoist with duplicate detection, stale task cleanup, and ADHD-friendly coaching.",
       "version": "1.0.0"
     },
     {
       "name": "tripit-export",
-      "source": "./",
+      "source": "./skills/tripit-export",
+      "skills": "./",
       "description": "Export TripIt travel data (trips, flights, hotels) to JSON using browser automation.",
       "version": "1.0.0"
     }
