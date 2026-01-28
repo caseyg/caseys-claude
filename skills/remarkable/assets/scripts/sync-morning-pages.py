@@ -36,9 +36,30 @@ read_tree = None  # type: ignore
 TextDocument = None  # type: ignore
 
 try:
+    # Extend ParagraphStyle enum BEFORE importing modules that use it
+    # This patches rmscene to recognize numbered list styles (10, 11)
+    import enum
+    from rmscene import scene_items
+
+    # Create extended enum with numbered list styles
+    class ExtendedParagraphStyle(enum.IntEnum):
+        BASIC = 0
+        PLAIN = 1
+        HEADING = 2
+        BOLD = 3
+        BULLET = 4
+        BULLET2 = 5
+        CHECKBOX = 6
+        CHECKBOX_CHECKED = 7
+        NUMBERED = 10      # Top-level numbered list (1. 2. 3.)
+        NUMBERED2 = 11     # Nested numbered list (a. b. c.)
+
+    # Monkey-patch rmscene to use our extended enum
+    scene_items.ParagraphStyle = ExtendedParagraphStyle
+    ParagraphStyle = ExtendedParagraphStyle
+
     from rmscene import read_tree  # type: ignore[no-redef]
     from rmscene.text import TextDocument  # type: ignore[no-redef]
-    from rmscene.scene_items import ParagraphStyle  # type: ignore[no-redef]
     RMSCENE_AVAILABLE = True
 except ImportError:
     # Stub for when rmscene not installed
@@ -53,13 +74,15 @@ except ImportError:
         BULLET2 = 5
         CHECKBOX = 6
         CHECKBOX_CHECKED = 7
+        NUMBERED = 10
+        NUMBERED2 = 11
     print("Warning: rmscene not installed. Run: uv pip install rmscene")
 
 # Configuration
 # Override these with environment variables for your setup
 DEFAULT_OBSIDIAN_PATH = Path(os.environ.get(
     "OBSIDIAN_DAILY_PATH",
-    Path.home() / "Obsidian" / "vault" / "Daily"
+    Path.home() / "Obsidian" / "cag" / "Daily"
 ))
 CACHE_DIR = Path(__file__).parent.parent.parent / "data" / "cache"
 DOWNLOAD_DIR = Path(__file__).parent.parent.parent / "data" / "downloads"
@@ -198,10 +221,10 @@ def download_document(doc: dict, force: bool = False) -> Path | None:
     return extracted_path
 
 
-# Expected numbered list style values (when rmscene adds support)
-# Based on reMarkable's UI ordering: bullets (4-5), checkboxes (6-7), then numbered lists
-NUMBERED_LIST_STYLE = 8    # Expected: top-level numbered list (1. 2. 3.)
-NUMBERED_LIST2_STYLE = 9   # Expected: nested numbered list (a. b. c. or i. ii. iii.)
+# Numbered list style values discovered from rmscene warnings
+# "Unrecognised text format code 10" appears when numbered lists are used
+NUMBERED_LIST_STYLE = 10   # Top-level numbered list (1. 2. 3.)
+NUMBERED_LIST2_STYLE = 11  # Nested numbered list (a. b. c. or i. ii. iii.)
 
 
 class NumberedListState:
@@ -420,9 +443,33 @@ def normalize_for_markdown(text: str) -> str:
     return text.strip()
 
 
+def extract_date_from_content(text: str) -> str | None:
+    """
+    Extract date from content text (e.g., heading like "# 2026-01-24" or "2026-01-24").
+
+    Looks for YYYY-MM-DD pattern in the first few lines of content.
+    Returns the date string if found, None otherwise.
+    """
+    import re
+    # Look for date pattern in first 200 chars (covers first few lines/heading)
+    first_chunk = text[:200]
+    match = re.search(r'(\d{4}-\d{2}-\d{2})', first_chunk)
+    if match:
+        return match.group(1)
+    return None
+
+
 def extract_pages_with_dates(extracted_path: Path) -> dict[str, list[str]]:
-    """Extract text from all pages, organized by date."""
-    # Load content file to get page dates
+    """
+    Extract text from all pages, organized by date.
+
+    Date detection priority:
+    1. Parse date from content (e.g., "# 2026-01-24" heading)
+    2. Fall back to page modification timestamp
+
+    This handles retrospective writing (typing paper notes days later).
+    """
+    # Load content file to get page timestamps as fallback
     content_files = list(extracted_path.glob("*.content"))
     if not content_files:
         print("Error: No .content file found")
@@ -430,26 +477,31 @@ def extract_pages_with_dates(extracted_path: Path) -> dict[str, list[str]]:
 
     content = json.loads(content_files[0].read_text())
 
-    # Build page -> date mapping
-    page_dates = {}
+    # Build page -> timestamp date mapping (fallback)
+    page_timestamp_dates = {}
     for page in content.get('cPages', {}).get('pages', []):
         page_id = page.get('id', '')
         modified_ms = int(page.get('modifed', 0))  # Note: reMarkable typo
         if modified_ms and page_id:
             date = datetime.fromtimestamp(modified_ms / 1000).strftime('%Y-%m-%d')
-            page_dates[page_id] = date
+            page_timestamp_dates[page_id] = date
 
     # Extract text from each .rm file
     day_texts = defaultdict(list)
 
     for rm_file in sorted(extracted_path.rglob('*.rm')):
         page_id = rm_file.stem
-        date = page_dates.get(page_id, 'unknown')
+        fallback_date = page_timestamp_dates.get(page_id, 'unknown')
 
         text = extract_text_from_rm(rm_file)
         if text.strip():
             # Normalize line breaks for Markdown
             text = normalize_for_markdown(text)
+
+            # Try to extract date from content first (handles retrospective writing)
+            content_date = extract_date_from_content(text)
+            date = content_date if content_date else fallback_date
+
             day_texts[date].append(text)
 
     return dict(day_texts)

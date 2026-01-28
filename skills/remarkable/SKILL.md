@@ -1,6 +1,6 @@
 ---
 name: remarkable
-version: 1.1.0
+version: 1.3.1
 description: Manage reMarkable tablet documents - upload PDFs/EPUBs, download with annotations, backup notebooks, and list/search documents. Use when the user mentions reMarkable, wants to send files to their tablet, download annotated PDFs, or backup their notebooks.
 ---
 
@@ -470,7 +470,7 @@ python assets/scripts/sync-morning-pages.py --dry-run
 1. **Find latest document**: Searches for documents matching "Morning Pages *"
 2. **Download if needed**: Uses hash comparison to skip unchanged documents
 3. **Extract text**: Parses .rm files using rmscene to get typed text
-4. **Detect dates**: Uses page modification timestamps to determine dates
+4. **Detect dates**: Parses date from content heading (e.g., "# 2026-01-24"), falls back to page modification timestamp. This correctly handles retrospective writing (typing paper notes days later).
 5. **Sync to Obsidian**:
    - If daily note exists with `## Morning Pages`: Update if content changed
    - If daily note exists without `## Morning Pages`: Append section
@@ -527,7 +527,7 @@ The reMarkable v6 format stores typed text in CRDT (Conflict-free Replicated Dat
 | Numbered list | `1. First`, `2. Second` |
 | Nested numbered | `   a. Sub-item`, `   b. Sub-item` |
 
-**Note**: Handwritten content is NOT extracted (would require OCR). Only typed text from the reMarkable keyboard is synced. Numbered list support is future-proofed for when rmscene adds ParagraphStyle support (expected style values 8-9).
+**Note**: Handwritten content is NOT extracted (would require OCR). Only typed text from the reMarkable keyboard is synced. Numbered list support works via monkey-patching rmscene's ParagraphStyle enum to recognize style code 10 (discovered empirically from rmscene warnings).
 
 #### Caching
 

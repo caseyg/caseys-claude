@@ -2,9 +2,38 @@
 
 ## January 26, 2026
 
+### remarkable - CRDT Protocol Documentation
+
+- **Added CRDT protocol documentation** (`references/CRDT_PROTOCOL.md`) - Comprehensive documentation of reMarkable's CRDT text synchronization protocol including:
+  - CrdtId structure (author ID + sequence number)
+  - CrdtSequenceItem for text blocks with left/right ID ordering
+  - LwwValue (Last-Write-Wins) for paragraph styles
+  - Paragraph style codes (PLAIN=1, HEADING=2, BULLET=4, NUMBERED=10, etc.)
+  - Binary file format v6 structure
+  - Operations: insert, append, delete text via CRDT
+
+- **Added write-text POC** (`assets/scripts/write-text-poc.py`) - Proof-of-concept script for writing text to reMarkable documents using CRDT operations. Features:
+  - List documents and pages from desktop app storage
+  - Dry-run mode for safe testing
+  - Author ID tracking (uses ID 2 to avoid conflicts with tablet's ID 1)
+  - CRDT state persistence for sequence number continuity
+  - Automatic backup before writes
+
+### remarkable v1.3.1
+
+- **Fixed default Obsidian path** - Changed from `~/Obsidian/vault/Daily` to `~/Obsidian/cag/Daily`
+
+### remarkable v1.3.0
+
+- **Fixed date detection for retrospective writing** - Now parses dates from content headings (e.g., "# 2026-01-24") instead of relying only on page modification timestamps. This correctly handles writing paper notes days later - content is filed to the date in the heading, not the date you typed it.
+
+### remarkable v1.2.0
+
+- **Fixed numbered list support** - Discovered reMarkable uses paragraph style code 10 for numbered lists (not 8-9 as guessed). Implemented monkey-patching of rmscene's `ParagraphStyle` enum to recognize style 10 before modules are loaded.
+
 ### remarkable v1.1.0
 
-- **Numbered list support** - Morning Pages sync now converts numbered lists to Markdown (`1. 2. 3.` and nested `a. b. c.`). Implementation is future-proofed for when rmscene adds ParagraphStyle support.
+- **Numbered list support** - Morning Pages sync now converts numbered lists to Markdown (`1. 2. 3.` and nested `a. b. c.`).
 - Added `NumberedListState` class for stateful list tracking
 - Documented all supported Markdown formats in SKILL.md
 
