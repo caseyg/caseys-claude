@@ -1,0 +1,9 @@
+sync:
+  discover_workspace_roots: true
+output:
+  vault_path: "~/Obsidian/cag/Notion"
+  attachment_folder: "_attachments"
+state:
+  file: "skills/notion-obsidian-sync/data/notoma-state.json"
+options:
+  download_attachments: true
